@@ -1,0 +1,12 @@
+{
+  "name": "zotero-paper-companion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Zotero PDF companion with ChatGPT plan authorization, DeepSeek translation and Markdown notes",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "build": "python scripts/build.py",
+    "check:repository": "python scripts/check_repository.py"
+  },
+  "license": "MIT"
+}

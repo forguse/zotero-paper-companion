@@ -1,0 +1,59 @@
+# Disposable native Zotero profiles, paper fixtures, and local test output
+/.native-tests/
+/profile/
+/profiles/
+/data/
+/paper-companion/
+
+# Local credentials and environment settings
+.env
+.env.*
+!.env.example
+credentials.enc
+credentials.json
+accounts.json
+settings.local.json
+*.pem
+*.key
+
+# Runtime dependencies and caches
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# Build outputs are distributed as GitHub Release assets.
+/INSTALL-LATEST.xpi
+/dist/
+
+# Local project handoff, design process, promotion and maintenance backups.
+/AGENTS.md
+/LOCAL-HANDOFF.md
+/FEATURES.md
+/VALIDATION.md
+/START-HERE.md
+/promo/
+/docs/ui/
+/.local-maintenance/
+/design-qa.md
+/docs/vocabulary-review.md
+/docs/experience-flows.md
+/docs/images/vocabulary-before.png
+/docs/images/vocabulary-startup-error.png
+/docs/images/native-appearance-fix.png
+/docs/images/vocabulary-full.png
+/docs/images/vocabulary-recall.png
+
+# Generated test reports; keep test sources and ui-controls.json.
+/tests/*-result.json
+/tests/core-test-result.txt
+
+# Unused icon originals retained locally.
+/addon/content/icons/arrow-up-right.svg
+/addon/content/icons/plus.svg

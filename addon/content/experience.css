@@ -1,0 +1,48 @@
+/* SPDX-License-Identifier: MIT — scope, reversible receipts and optional help. */
+#reading-scope-host{min-width:0;position:relative;flex:none;margin:0 0 3px}
+.reading-scope{margin:0;font-size:12px;color:var(--muted)}
+.reading-scope>.reading-scope-label{position:relative;display:block;min-height:25px;line-height:23px;margin:0;padding:1px 18px 1px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;cursor:pointer}
+.reading-scope>.reading-scope-label:before{content:'范围 ';color:var(--green);font-weight:600}
+.reading-scope>.reading-scope-label::marker{content:''}
+.reading-scope-label:after{content:'⌄';position:absolute;right:2px;top:1px;color:var(--green)}
+.reading-scope[open]>.reading-scope-label:after{transform:rotate(180deg)}
+.reading-scope-details{position:absolute;z-index:8;left:0;right:0;bottom:calc(100% + 5px);max-height:min(48vh,360px);overflow:auto;overscroll-behavior:contain;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--paper);box-shadow:0 6px 22px var(--theme-shadow);color:var(--ink);white-space:normal;overflow-wrap:anywhere;scrollbar-gutter:stable}
+.reading-scope-details section+section{margin-top:10px;padding-top:9px;border-top:1px solid var(--border)}
+.reading-scope-details strong{font-size:12px}.reading-scope-details p{margin:4px 0;font-size:12px;line-height:1.7}
+.reading-scope-details .reading-scope-warning{color:var(--muted);border-left:2px solid var(--border);padding-left:7px}
+.reading-scope-primary{display:flex;gap:6px;align-items:flex-start;margin:9px 0 0;font-size:12px;color:var(--green)}
+.reading-scope-primary input{margin:3px 0 0;flex:none}.reading-scope-primary span{min-width:0}
+.message-reading-detail{display:block;margin-top:5px;font-size:12px;line-height:1.8}
+.note-receipt{display:flex;align-items:center;justify-content:space-between;gap:4px 10px;flex-wrap:wrap;padding:5px 8px;margin:5px 0;border:1px solid var(--border);border-radius:7px;background:var(--soft);color:var(--muted);font-size:12px;line-height:1.6}
+.note-receipt-actions{display:flex;gap:2px;flex:none}.note-receipt-actions button{border:0;background:transparent;box-shadow:none;color:var(--green);font-size:12px;min-height:26px;padding:2px 5px}
+.note-receipt[data-status=error]{border-color:var(--error)}.note-receipt[data-status=error] .note-receipt-status{color:var(--error)}
+.note-latest-receipt{flex:none;margin:0 var(--gutter)}.note-latest-receipt:empty,.message-note-receipt:empty,.source-note-receipt:empty,#translation-note-receipt:empty{display:none}
+.note-located>*{background:var(--soft);box-shadow:0 0 0 3px var(--soft);border-radius:3px}
+.settings-save-state{display:block;margin:7px 0 0;color:var(--muted);font-size:12px;font-weight:400;line-height:1.7;overflow-wrap:anywhere}
+[data-save-status=dirty]>.settings-save-state,[data-save-status=saving]>.settings-save-state{color:var(--green)}
+[data-save-status=error]>.settings-save-state{color:var(--error)}
+.settings-save>.settings-save-state{grid-column:1/-1;margin:0}.settings-heading-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.web-tools>.settings-save-state{flex-basis:100%;margin:0 2px;font-size:12px}
+/* Persistent save instructions belong in Settings. Keep quiet committed state
+   available to assistive technology without consuming working-area height;
+   pending changes and failed writes still display next to their controls. */
+:is(#chat-options,.web-tools,#material-options,#screenshot-options,#translation-settings,.highlights-config,#note-insert-options,#translation-save-options)[data-save-status=clean]>.settings-save-state{position:absolute;width:1px;height:1px;min-width:0;min-height:0;margin:0;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;flex:none}
+#guide-shortcuts{flex:none;padding:0 var(--gutter) 5px}#guide-shortcuts:empty{display:none}
+.pc-guide-shortcuts{display:flex;gap:5px;min-width:0}.pc-guide-shortcut{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:12px;min-height:27px;background:var(--glass)}
+#guide-empty-hint{flex:none;margin:0 var(--gutter) 4px}.pc-guide-empty-hint{display:flex;align-items:center;justify-content:space-between;gap:4px;color:var(--muted);font-size:12px}.pc-guide-dismiss{padding:0 4px;min-height:23px;border:0;background:transparent;color:var(--muted)}
+.pc-action-guide{width:min(520px,calc(100% - 20px));max-height:calc(100% - 24px);padding:0;border:1px solid var(--border);border-radius:14px;background:var(--paper);color:var(--ink);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.pc-guide-header{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 16px;background:var(--glass);border-bottom:1px solid var(--border);backdrop-filter:blur(12px)}
+.pc-guide-header h2{margin:0;font-size:17px}.pc-guide-close{border:0;background:transparent;box-shadow:none;font-size:22px;min-height:30px;min-width:30px;padding:0}
+.pc-guide-page{display:flex;align-items:center;gap:9px;margin:12px 16px 8px;font-size:12px}.pc-guide-page select{flex:1;min-width:0}
+.pc-guide-hint{font-size:12px;line-height:1.8;margin:8px 16px 14px;color:var(--muted)}
+.pc-guide-actions{padding:0 16px}.pc-guide-action-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border);padding:10px 0}.pc-guide-action-main{min-width:0;flex:1}
+.pc-guide-action-button{font-size:12px;color:var(--green);padding:3px 0;min-height:27px;border:0;background:transparent;box-shadow:none;white-space:normal;text-align:left}
+.pc-guide-action-description{font-size:12px;line-height:1.75;margin:3px 0 0;color:var(--muted);overflow-wrap:anywhere}.pc-guide-pin{display:flex;align-items:center;gap:4px;flex:none;font-size:12px;margin:0;color:var(--muted)}
+.pc-guide-status{font-size:12px;line-height:1.75;color:var(--muted);margin:10px 16px}.pc-guide-reset{display:block;font-size:12px;margin:0 16px 16px}
+html[data-pc-theme] body .send-row>#quick-toggle{font-size:12px;gap:4px;padding:3px 7px;width:auto;min-width:62px;flex:0 0 auto;white-space:nowrap}
+html[data-pc-theme] body .send-row>#quick-toggle .pc-glyph{width:15px;height:15px}
+body.chat-focus #guide-shortcuts{display:none}
+@media(max-width:320px){html[data-pc-theme] body .send-row>#quick-toggle .pc-glyph{display:none}.pc-guide-header{padding:10px 12px}.pc-guide-actions{padding:0 12px}.pc-guide-action-row{gap:8px}.settings-heading-actions{gap:0}.settings-heading-actions .text-button{font-size:12px}.note-receipt{padding:4px 6px}}
+@media(max-height:540px){#guide-empty-hint{display:none}.reading-scope>.reading-scope-label{min-height:20px;line-height:18px;font-size:12px}.reading-scope-details{max-height:42vh}#guide-shortcuts{padding-bottom:3px}.pc-guide-shortcut{min-height:24px;font-size:12px}}
+@media(forced-colors:active){.reading-scope-details,.note-receipt,.pc-action-guide{border-color:CanvasText;background:Canvas;color:CanvasText}.note-located>*{outline:1px solid Highlight;box-shadow:none}}
+@media(prefers-reduced-motion:reduce){.reading-scope-label:after{transition:none}}

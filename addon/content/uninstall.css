@@ -1,0 +1,31 @@
+/* SPDX-License-Identifier: MIT — uninstall review uses the existing theme tokens. */
+.pc-uninstall-review { --uninstall-inset: 20px; box-sizing: border-box; width: min(720px, calc(100vw - 28px)); max-height: calc(100vh - 28px); padding: 0 0 var(--uninstall-inset); overflow: auto; color: var(--ink, #203a46); background: var(--paper, #fafbf9); border: 1px solid var(--border, #cedbe0); border-radius: 16px; box-shadow: 0 16px 56px var(--theme-shadow, #142e3d26); }
+.pc-uninstall-review > :not(.pc-uninstall-header) { margin-inline: var(--uninstall-inset); }
+.pc-uninstall-review::backdrop { background: #162d3e55; }
+.pc-uninstall-header, .pc-uninstall-footer, .pc-uninstall-file { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pc-uninstall-header { position: sticky; top: 0; z-index: 2; justify-content: space-between; padding: 14px var(--uninstall-inset); background: var(--paper, #fafbf9); border-bottom: 1px solid var(--border, #cedbe0); }
+.pc-uninstall-header h2 { margin: 0; font-size: 20px; line-height: 1.4; }
+.pc-uninstall-intro, .pc-uninstall-ending, .pc-uninstall-limitations, .pc-uninstall-kept { font-size: 13px; line-height: 1.65; }
+.pc-uninstall-status { min-height: 1.6em; margin: 12px 0; color: var(--muted, #607b88); }
+.pc-uninstall-category { margin-block: 16px; }
+.pc-uninstall-category h3 { font-size: 14px; margin: 0 0 6px; }
+.pc-uninstall-file { padding: 8px 0; border-bottom: 1px solid var(--border, #cedbe0); }
+.pc-uninstall-path { min-width: 0; flex: 1; overflow-wrap: anywhere; font-size: 12px; user-select: text; }
+.pc-uninstall-review button { flex-shrink: 0; min-height: 36px; border-radius: 8px; }
+.pc-uninstall-footer { justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--border, #cedbe0); }
+.pc-uninstall-limitations { padding-left: 20px; }
+.pc-uninstall-kept p { overflow-wrap: anywhere; }
+.pc-uninstall-confirmation { padding: 13px; margin: 14px 0; border: 1px solid var(--border, #cedbe0); border-radius: 10px; background: var(--soft, #edf2f5); }
+.pc-uninstall-confirmation-status { margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border, #cedbe0); font-size: 12px; line-height: 1.7; color: var(--ink, #203a46); overflow-wrap: anywhere; }
+.pc-uninstall-confirmation-status[data-stage=error] { color: var(--error, #aa4338); }
+.pc-uninstall-acknowledgement, .pc-uninstall-category-choice { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.pc-uninstall-acknowledgement { font-size: 12px; line-height: 1.7; }
+.pc-uninstall-acknowledgement input, .pc-uninstall-category-choice input { flex: none; margin-top: 4px; }
+.pc-uninstall-category-choice h3 { margin-bottom: 0; }
+.pc-uninstall-confirmation-label { display: block; margin: 12px 0; font-size: 12px; }
+.pc-uninstall-confirmation-label input { display: block; width: 100%; margin-top: 5px; min-height: 36px; border: 1px solid var(--border, #cedbe0); border-radius: 7px; background: var(--paper, #fafbf9); padding: 5px 8px; }
+.pc-uninstall-review .pc-uninstall-delete { width: 100%; color: var(--error, #aa4338); border-color: var(--error, #aa4338); }
+.pc-uninstall-review .pc-uninstall-delete:enabled:hover { background: var(--error-bg, #fff0ed); }
+.pc-uninstall-review :focus-visible { outline: 2px solid var(--green, #466471); outline-offset: 2px; }
+@media (max-width: 340px) { .pc-uninstall-review { --uninstall-inset: 14px; } .pc-uninstall-file { align-items: flex-start; flex-direction: column; } .pc-uninstall-reveal { align-self: flex-end; } }
+@media (forced-colors: active) { .pc-uninstall-review, .pc-uninstall-header { color: CanvasText; background: Canvas; border-color: CanvasText; } }

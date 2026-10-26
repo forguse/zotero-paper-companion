@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "Paper Companion · 论文伴读",
+  "version": "1.0.0",
+  "description": "在 Zotero 中连续阅读问答、划词翻译、记录 Markdown 笔记、整理重点和复习生词。",
+  "author": "Paper Companion contributors",
+  "icons": {
+    "48": "content/icon.svg",
+    "96": "content/icon.svg"
+  },
+  "applications": {
+    "zotero": {
+      "id": "paper-companion@local",
+      "update_url": "https://github.com/forguse/zotero-paper-companion/releases/latest/download/updates.json",
+      "strict_min_version": "7.0",
+      "strict_max_version": "10.0.*"
+    }
+  }
+}

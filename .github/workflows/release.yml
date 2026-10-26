@@ -1,0 +1,65 @@
+name: Prepare verified release draft
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag, matching the built version (for example v1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check repository and core behavior
+        run: |
+          python scripts/check_repository.py
+          node --test tests/*.test.cjs
+          python -m unittest discover -s tests -p 'test_*.py'
+      - name: Build and verify matching release assets
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          python scripts/build.py
+          python scripts/make_update_manifest.py --repository "$RELEASE_REPOSITORY" --tag "$RELEASE_TAG"
+          python -c "import hashlib,pathlib; files=[pathlib.Path('INSTALL-LATEST.xpi'),pathlib.Path('dist/updates.json')]; pathlib.Path('dist/SHA256SUMS').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in files),encoding='utf-8')"
+      - name: Upload build for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-release-assets
+          path: |
+            INSTALL-LATEST.xpi
+            dist/updates.json
+            dist/SHA256SUMS
+          if-no-files-found: error
+      - name: Create or update draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft > "$RUNNER_TEMP/release-state.json"; then
+            python -c "import json,os,pathlib; state=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'release-state.json').read_text()); assert state.get('isDraft') is True, 'Refusing to change an already published release'"
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "Paper Companion $RELEASE_TAG" --notes "Verified build. Review release notes and native Zotero validation before publication."
+          fi
+          gh release upload "$RELEASE_TAG" INSTALL-LATEST.xpi dist/updates.json dist/SHA256SUMS --clobber
