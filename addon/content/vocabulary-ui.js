@@ -1,5 +1,28 @@
 /* SPDX-License-Identifier: MIT — shared local book and review UI. */
 var PCVocabularyUI = class {
+  static sentenceParts(sentence, word) {
+    const text=String(sentence||''),term=String(word||'').trim();
+    if(!text||!term)return [{text,emphasis:false}];
+    // Match literal words/phrases, including PDF line-break whitespace. Keep
+    // original characters for copying and never guess stems or inflections.
+    const escape=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const pattern=new RegExp(term.split(/\s+/u).map(escape).join('\\s+'),'giu');
+    const wordCharacter=/[\p{L}\p{N}\p{M}_]/u,parts=[];let cursor=0,match;
+    const previous=index=>{const last=text.charCodeAt(index-1);return text.slice(index-(last>=0xDC00&&last<=0xDFFF&&index>1?2:1),index);};
+    while((match=pattern.exec(text))){
+      const from=match.index,to=from+match[0].length;
+      if((from>0&&wordCharacter.test(previous(from)))||(to<text.length&&wordCharacter.test(String.fromCodePoint(text.codePointAt(to)))))continue;
+      if(from>cursor)parts.push({text:text.slice(cursor,from),emphasis:false});
+      parts.push({text:match[0],emphasis:true});cursor=to;
+    }
+    if(cursor<text.length||!parts.length)parts.push({text:text.slice(cursor),emphasis:false});
+    return parts;
+  }
+  sentenceNode(sentence, word) {
+    const node=this.el('blockquote','vocab-sentence');
+    for(const part of PCVocabularyUI.sentenceParts(sentence,word))node.append(part.emphasis?this.el('mark','vocab-sentence-word',part.text):this.doc.createTextNode(part.text));
+    return node;
+  }
   constructor({ api, container, standalone = false, inline = false, review = false, getPaper = null, paper = null }) {
     this.api = api; this.book = api.vocabulary; this.root = container; this.doc = container.ownerDocument;
     this.win = this.doc.defaultView; this.standalone = standalone; this.inline = inline; this.mode = review ? 'review' : 'list'; this.page = 0; this.drafts = new Map();
@@ -285,7 +308,7 @@ var PCVocabularyUI = class {
     link.addEventListener('click', () => this.run(() => this.api.openReference({ paperID: c.paperID, page: c.page, key: c.paperKey }))); source.append(link);
     const origin={local:'本地取句',manual:'补划录入',ocr:'OCR 自动补采',model:'模型自动补采'}[c.contextMode]||'';
     box.append(source, this.el('p', 'vocab-meta', new Date(c.at).toLocaleString() + ' · 第 ' + c.seq + ' 次记录'+(origin?' · '+origin:'')));
-    if(c.sentence)box.append(this.el('blockquote', 'vocab-sentence', c.sentence));
+    if(c.sentence)box.append(this.sentenceNode(c.sentence,c.word));
     else {
       // Display-only placeholders: never copied into the ledger or model input.
       const quotes=[['Brevity is the soul of wit.','William Shakespeare · Hamlet'],['There is no charm equal to tenderness of heart.','Jane Austen · Emma'],['A little learning is a dangerous thing.','Alexander Pope · An Essay on Criticism']];

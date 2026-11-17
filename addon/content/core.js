@@ -295,18 +295,19 @@
     return { parser, finish() { parser.push("", true); if (!complete) throw new Error("DeepSeek 回答连接中断，请重试。"); return text; } };
   }
   function filename(title) { return String(title || "论文笔记").replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").replace(/[. ]+$/, "").slice(0, 90) || "论文笔记"; }
+  function isChatProvider(provider) { return provider === "" || provider === "deepseek" || provider === "chatgpt"; }
   function engineGuide(provider) {
-    return ({deepseek:'在插件内回答，点击发送即可；使用你保存的 DeepSeek API Key 额度。',chatgpt:'在插件内回答，点击发送即可；使用当前已授权 ChatGPT 账号的 Work/Codex 额度。','chatgpt-web':'传入 ChatGPT 网页草稿后，需你在网页点击发送；使用网页登录账号的普通 Chat 额度。'})[provider] || '先选择问答方式，再配置对应账号；打开插件不会自动连接模型。';
+    return ({deepseek:'在插件内回答，点击发送即可；使用你保存的 DeepSeek API Key 额度。',chatgpt:'在插件内回答，点击发送即可；使用当前已授权 ChatGPT 账号的 Work/Codex 额度。'})[provider] || '先选择问答方式，再配置对应账号；打开插件不会自动连接模型。';
   }
   function featureModel(settings, feature) {
     const s=settings;let provider,model,effort,target;
     if(['translation','vocabulary','vocabulary-context'].includes(feature)){provider=s.translationProvider;model=provider==='deepseek'?s.deepseekModel:s.translationChatGPTModel;effort=provider==='deepseek'?s.translationEffort:s.translationChatGPTEffort;target='translation';}
     else if(['formula','vocabulary-ocr'].includes(feature)){provider=s.formulaProvider;model=provider==='deepseek'?'deepseek-flash':s.formulaChatGPTModel;effort=provider==='deepseek'?'none':'default';target='formula';}
     else if(['summary','review'].includes(feature)){provider=s.summaryProvider;model=provider==='deepseek'?s.summaryDeepseekModel:s.summaryChatGPTModel;effort=provider==='deepseek'?s.summaryEffort:s.summaryChatGPTEffort;target='summary';}
-    else if(['chat','preread'].includes(feature)){provider=s.chatProvider;model=provider==='deepseek'?s.chatDeepseekModel:s.model;effort=provider==='deepseek'?'none':s.chatGPTEffort;target='chat';}
+    else if(['chat','preread'].includes(feature)){provider=isChatProvider(s.chatProvider)?s.chatProvider:'';model=provider==='deepseek'?s.chatDeepseekModel:provider==='chatgpt'?s.model:'';effort=provider==='deepseek'?'none':provider==='chatgpt'?s.chatGPTEffort:'';target='chat';}
     else throw new Error('未知的模型用途。');
-    const names={deepseek:'DeepSeek',chatgpt:'ChatGPT 授权','chatgpt-web':'ChatGPT 网页'},models={'deepseek-flash':'Flash','deepseek-v4-pro':'Pro'},efforts={none:'快速',default:'默认强度',low:'低强度',medium:'中强度',high:'高强度',xhigh:'更高强度',max:'最高强度'};
-    const label=provider==='chatgpt-web'?'ChatGPT 网页 · 在网页选模型':(names[provider]||'未选引擎')+' · '+(model?models[model]||model:'未选模型')+(effort?' · '+(efforts[effort]||effort):'');
+    const names={deepseek:'DeepSeek',chatgpt:'ChatGPT 授权'},models={'deepseek-flash':'Flash','deepseek-v4-pro':'Pro'},efforts={none:'快速',default:'默认强度',low:'低强度',medium:'中强度',high:'高强度',xhigh:'更高强度',max:'最高强度'};
+    const label=(names[provider]||'未选引擎')+' · '+(model?models[model]||model:'未选模型')+(effort?' · '+(efforts[effort]||effort):'');
     return {provider,model,effort,target,label};
   }
   function themeIDs() { return ['cloud','blue','warm','dark']; }
@@ -317,8 +318,8 @@
     const base={
       cloud:{id:'cloud',label:'云岚瓷白',bg:'#F3F5F4',paper:'#FAFAF7',ink:'#1D303B',muted:'#596D76',rule:'#D6E0E3',button:'#E8EFF0',accent:'#46616F',accentHover:'#344E5D',fill:'#46616F',fillHover:'#344E5D',top:'#EDF2F2',glow:'#789BA9',spark:'#365E70',glass:'#FAFCF9de',glassSolid:'#EDF2F2',highlight:'#FFFFFFbd',shadow:'#243D4B16',blur:'14px',
         edgeA:'#315F73',edgeB:'#64658F',edgeC:'#77A699',edgeBrightA:'#E5F5FF',edgeBrightB:'#AABBE5',edgeBrightC:'#A8D8C8',
-        atmosphere:'radial-gradient(ellipse 90% 170px at 28% 10px,#FFFFFFed,transparent 84%),radial-gradient(ellipse 110% 240px at 100% 35px,#A7BCC994,transparent 82%),radial-gradient(ellipse 100% 180px at 2% 150px,#D0DBDF8c,transparent 84%),linear-gradient(175deg,#F0F4F3 0%,#F9FAF7 48%,#E9EFF0 100%)',
-        header:'radial-gradient(ellipse 70% 95% at 35% 5%,#FFFFFFed 0%,#FFFFFF57 45%,transparent 80%),radial-gradient(ellipse at 100% 0,#A6BDC994,transparent 80%),radial-gradient(ellipse at 7% 100%,#DFE7E6a6,transparent 84%),linear-gradient(110deg,#FBFCF8e6,#D9E4E6d9)',
+        atmosphere:'radial-gradient(ellipse 95% 185px at 28% 10px,#FFFFFFed,transparent 84%),radial-gradient(ellipse 125% 270px at 100% 35px,#A7BCC9a3,transparent 85%),radial-gradient(ellipse 110% 205px at 2% 150px,#D0DBDF99,transparent 86%),linear-gradient(175deg,#F0F4F3 0%,#F9FAF7 48%,#E9EFF0 100%)',
+        header:'radial-gradient(ellipse 75% 100% at 35% 5%,#FFFFFFed 0%,#FFFFFF57 45%,transparent 84%),radial-gradient(ellipse at 100% 0,#A6BDC9a3,transparent 84%),radial-gradient(ellipse at 7% 100%,#DFE7E6b3,transparent 87%),linear-gradient(110deg,#FBFCF8e6,#D9E4E6d9)',
         wash:'linear-gradient(155deg,#FFFFFFc9,#D8E4E8a6)',
         popup:'radial-gradient(ellipse 100% 180px at 100% 0,#B0C4CF8c,transparent 85%),linear-gradient(160deg,#FCFCF9f5,#EDF2F1f5)'
       },
@@ -368,7 +369,7 @@
     const original = scope === 'translation' ? '' : excerpt(source, null, sourceStyle);
     return original + (scope === 'source' ? '' : (scope === 'both' ? '**译文**' : '') + excerpt(translation, null, translationStyle));
   }
-  const api = { OPENAI, ISSUER, SCOPES, INSTRUCTIONS, escapeHTML, safeURL, markdown, SSEParser, responsesCollector, safeError, apiError, base64url, unbase64url, verifyIDToken, validateCallback, pdfText, contextContent, responsesBody, translationBody, noteQuote, excerpt, deepseekHistory, deepseekBody, deepseekCollector, filename, reasoningEfforts, engineGuide, translationExcerpt, featureModel, themeIDs, surfacePalette, borderLight };
+  const api = { OPENAI, ISSUER, SCOPES, INSTRUCTIONS, escapeHTML, safeURL, markdown, SSEParser, responsesCollector, safeError, apiError, base64url, unbase64url, verifyIDToken, validateCallback, pdfText, contextContent, responsesBody, translationBody, noteQuote, excerpt, deepseekHistory, deepseekBody, deepseekCollector, filename, reasoningEfforts, isChatProvider, engineGuide, translationExcerpt, featureModel, themeIDs, surfacePalette, borderLight };
   root.PCore = api;
   if (typeof module !== "undefined") module.exports = api;
 })(this);

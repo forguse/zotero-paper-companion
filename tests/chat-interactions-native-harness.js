@@ -193,6 +193,38 @@ function startup({rootURI}) {
     }
    }
    Services.prefs.clearUserPref('layout.css.devPixelsPerPx');await wait(()=>Math.abs(win.devicePixelRatio-originalScale)<.03,'restore original native render scale');
+   // Exercise the editable field itself: the scrolling wrapper must not clip
+   // its focus paint, and a busy turn must not squeeze its footer controls.
+   await pc.saveSettings({chatOptionsCollapsed:true,materialsCollapsed:true});
+   const originalPrompt=$('prompt').value,paintPrompt=()=>{const node=$('prompt'),r=node.getBoundingClientRect(),canvas=doc.createElement('canvas');canvas.width=Math.ceil(r.width);canvas.height=Math.ceil(r.height);canvas.getContext('2d').drawWindow(win,r.left,r.top,canvas.width,canvas.height,'white');return{width:canvas.width,height:canvas.height,pixels:canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data};};
+   const footerTargets=label=>{
+    const row=rect(doc.querySelector('.send-row')),buttons=[...doc.querySelectorAll('.send-row>button')].filter(node=>rect(node).width>0),bounds=buttons.map(node=>({id:node.id,rect:rect(node),disabled:node.disabled}));
+    const targets=buttons.filter(node=>!node.disabled),actions=buttons.filter(node=>['send','stop'].includes(node.id));
+    check(actions.length===1&&!actions[0].disabled&&targets.every(node=>{const r=rect(node),hit=doc.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return r.width>=24&&r.height>=28&&r.left>=row.left-.5&&r.right<=row.right+.5&&(hit===node||node.contains(hit));}),label+' has one enabled primary action and fully visible clickable footer targets',{row,bounds});
+    check(bounds.every((a,i)=>bounds.every((b,j)=>i===j||a.rect.right<=b.rect.left+.5||b.rect.right<=a.rect.left+.5)),label+' footer targets never overlap',bounds);
+    const amount=$('usage-hint');check(amount.textContent.trim()&&amount.clientWidth>0&&amount.scrollWidth<=amount.clientWidth+1,label+' keeps the actual cost caption readable without truncation',{text:amount.textContent,width:amount.clientWidth,scroll:amount.scrollWidth});
+    check(actions.every(action=>{const text=action.querySelector('.pc-control-label')||action;return text.scrollWidth<=text.clientWidth+1;}),label+' shows the complete Send or Stop label without an ellipsis');
+    return rect(actions[0]);
+   };
+   for(const width of [260,304,520]){
+    frame.style.width=width+'px';frame.style.height='760px';await wait(()=>win.innerWidth===width&&win.innerHeight===760,'editable composer viewport '+width);outer.scrollTop=0;tab('chat');pc.chatBusy=false;pc.emit('busy');
+    const input=$('prompt');input.value='';input.dispatchEvent(new win.Event('input',{bubbles:true}));$('composer-fields').scrollTop=0;$('messages').focus({preventScroll:true});await pause();
+    const normal=paintPrompt(),r=rect(input),style=win.getComputedStyle(input),corners=['borderTopLeftRadius','borderTopRightRadius','borderBottomLeftRadius','borderBottomRightRadius'].map(key=>parseFloat(style[key]));
+    check(corners.every(value=>value>=6)&&Math.max(...corners)-Math.min(...corners)<.5,width+' editable textbox retains matching rounded corners',corners);
+    input.focus({preventScroll:true,focusVisible:true});await pause();const focused=paintPrompt(),edgeChanges={top:0,right:0,bottom:0,left:0};
+    for(let y=0;y<normal.height;y++)for(let x=0;x<normal.width;x++){
+     const offset=(y*normal.width+x)*4,difference=Math.abs(normal.pixels[offset]-focused.pixels[offset])+Math.abs(normal.pixels[offset+1]-focused.pixels[offset+1])+Math.abs(normal.pixels[offset+2]-focused.pixels[offset+2]);if(difference<30)continue;
+     if(x>=12&&x<normal.width-12){if(y<4)edgeChanges.top++;if(y>=normal.height-4)edgeChanges.bottom++;}
+     if(y>=12&&y<normal.height-12){if(x<4)edgeChanges.left++;if(x>=normal.width-4)edgeChanges.right++;}
+    }
+    check(doc.activeElement===input&&Object.values(edgeChanges).every(count=>count>=8),width+' focus paint remains visibly present on all four textbox edges instead of being clipped',{r,edgeChanges});
+    input.value=Array.from({length:18},(_,index)=>index===0?'FIRST visible text':index===17?'LAST visible text':'Typed question line '+(index+1)).join('\n');input.dispatchEvent(new win.Event('input',{bubbles:true}));input.setSelectionRange(input.value.length,input.value.length);input.scrollTop=input.scrollHeight;await pause();
+    const typedStyle=win.getComputedStyle(input),insets={left:parseFloat(typedStyle.paddingLeft),right:parseFloat(typedStyle.paddingRight)},fields=rect($('composer-fields')),typed=rect(input);
+    check(input.scrollHeight>input.clientHeight&&input.scrollTop>0&&insets.left>=8&&insets.right>=8&&typed.left>=fields.left-.5&&typed.right<=fields.right+.5,width+' long typed text scrolls inside a textbox with real insets away from its edges and scrollbar',{insets,fields,typed,height:input.clientHeight,scroll:input.scrollHeight,top:input.scrollTop});
+    const idleAction=footerTargets(width+' idle');pc.chatBusy=true;pc.emit('busy');await pause();const busyAction=footerTargets(width+' busy');
+    check(Math.abs(idleAction.left-busyAction.left)<1&&Math.abs(idleAction.right-busyAction.right)<1,width+' busy Stop occupies the same reachable primary-action position as Send',{idleAction,busyAction});
+    if(width===304)await capture('composer-typed-focus-busy');pc.chatBusy=false;pc.emit('busy');input.value=originalPrompt;input.dispatchEvent(new win.Event('input',{bubbles:true}));
+   }
    frame.style.width='260px';frame.style.height='430px';await wait(()=>win.innerWidth===260&&win.innerHeight===430,'fully expanded short viewport');
    await pc.saveSettings({headerCollapsed:false,chatOptionsCollapsed:false,materialsCollapsed:false});tab('chat');await pause();
    const shortSend=rect($('send')),shortLog=rect(doc.querySelector('.chat-log')),fields=$('composer-fields');
@@ -217,7 +249,7 @@ function startup({rootURI}) {
    frame.style.width='520px';frame.style.height='900px';await wait(()=>win.innerWidth===520,'motion viewport');outer.scrollTop=0;tab('chat');await pc.saveAppearance({appearanceMotion:'standard'});await pause();
    $('messages').scrollTop=$('messages').scrollHeight;await pause();$('materials-toggle').click();const materialAnimation=$('material-options').getAnimations().find(a=>a.effect?.target===$('material-options'));
    check(!!materialAnimation&&materialAnimation.effect.getTiming().duration<=160,'material expansion starts a short native height animation immediately');await pause();check(!$('material-options').hidden&&bottom(),'material expansion keeps the final answer above the composer');
-   $('materials-toggle').click();await pause();check($('material-options').hidden&&bottom(),'material collapse finishes cleanly and retains the bottom anchor');
+   $('materials-toggle').click();await pause();await wait(()=>$('material-options').hidden&&!$('material-options').getAnimations().some(a=>a.playState==='running'),'material collapse native animation settled');check($('material-options').hidden&&bottom(),'material collapse finishes cleanly and retains the bottom anchor');
    // A delayed disk write must not delay visual acknowledgment of a disclosure.
    const save=pc.saveSettings.bind(pc);let release;pc.saveSettings=async patch=>{if('chatOptionsCollapsed'in patch)await new Promise(resolve=>{release=resolve;});return save(patch);};
    $('chat-options-toggle').click();check($('chat-options-toggle').getAttribute('aria-expanded')==='true'&&!!release,'model selector responds before its preference finishes saving');release();await pause();pc.saveSettings=save;

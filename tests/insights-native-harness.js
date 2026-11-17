@@ -7,8 +7,8 @@ function startup() {
   try {
    await Zotero.uiReadyPromise;await Zotero.initializationPromise;await Zotero.Libraries.userLibrary.waitForDataLoad('item');
    await wait(()=>Zotero.PaperCompanion,'plugin startup');const pc=Zotero.PaperCompanion;
-   let requests=0,reviewRequests=0,reviewInput='';const instructions=[];
-   pc.request=async(_,{body})=>{requests++;const data=JSON.parse(body),review=data.messages[0].content===pc.insights.prompt('review');instructions.push(data.messages[0].content);if(review){reviewRequests++;reviewInput=data.messages[1].content;}return {choices:[{message:{content:review?'- REVIEW_MARKER: grouped concepts and open questions.':'- SUMMARY_MARKER: concise scientific result.'},finish_reason:'stop'}]};};
+   let requests=0,reviewRequests=0,reviewInput='',lastSummaryInput='';const instructions=[];
+   pc.request=async(_,{body})=>{requests++;const data=JSON.parse(body),review=data.messages[0].content===pc.insights.prompt('review');instructions.push(data.messages[0].content);if(review){reviewRequests++;reviewInput=data.messages[1].content;}else lastSummaryInput=data.messages[1].content;return {choices:[{message:{content:review?'- REVIEW_MARKER: grouped concepts and open questions.':'- SUMMARY_MARKER: concise scientific result.'},finish_reason:'stop'}]};};
    const parent=new Zotero.Item('journalArticle');parent.setField('title','Two-stage summary test');await parent.saveTx();
    const attachment=await Zotero.Attachments.importFromFile({file:'__PDF__',parentItemID:parent.id});const reader=await Zotero.Reader.open(attachment.id);pc.readerID=reader.itemID;
    await pc.openPanel();await wait(()=>pc.panel?.document?.body?.dataset?.ready==='true','sidebar ready');
@@ -85,6 +85,18 @@ function startup() {
    doc.getElementById('tab-settings').style.width='260px';await Zotero.Promise.delay(80);
    const settingsBounds=doc.getElementById('tab-settings').getBoundingClientRect();
    check(['summary-prompt','review-prompt','summary-prompt-reset','review-prompt-reset','save-summary-prompts'].every(id=>{const r=doc.getElementById(id).getBoundingClientRect();return r.left>=settingsBounds.left&&r.right<=settingsBounds.right;}),'prompt editors and buttons fit a 260px sidebar');
+   const webBefore=requests;
+   session.messages.push(
+    {role:'user',text:'VERIFIED_WEB_QUESTION',status:'complete',at:9,webVerified:true,webRequestID:'verified-native-request'},
+    {role:'assistant',text:'VERIFIED_WEB_ANSWER',status:'complete',at:10,provider:'chatgpt-web',webVerified:true,webRequestID:'verified-native-request',webConversation:'/c/verified-native-chat'},
+    {role:'user',text:'UNVERIFIED_WEB_QUESTION',status:'complete',at:11},
+    {role:'assistant',text:'UNVERIFIED_WEB_ANSWER',status:'complete',at:12,provider:'chatgpt-web'},
+    {role:'user',text:'CANCELLED_WEB_QUESTION',status:'cancelled',at:13},
+    {role:'assistant',text:'CANCELLED_WEB_ANSWER',status:'cancelled',at:14,provider:'chatgpt-web'});
+   await pc.saveSession(paper.key);await pc.insights.manualUpdate(paper);
+   check(requests===webBefore+1&&!pc.web&&lastSummaryInput.includes('VERIFIED_WEB_ANSWER')&&!lastSummaryInput.includes('UNVERIFIED_WEB_ANSWER')&&!lastSummaryInput.includes('CANCELLED_WEB_ANSWER'),'only the verified saved webpage turn is available to the chosen summary model');
+   await pc.insights.manualUpdate(paper);
+   check(requests===webBefore+1,'rechecking a verified saved webpage turn does not repeat its summary model call');
    doc.querySelector('.summary-prompts').scrollIntoView();
    try { const win=pc.panel,canvas=doc.createElement('canvas');canvas.width=win.innerWidth;canvas.height=win.innerHeight;canvas.getContext('2d').drawWindow(win,0,0,canvas.width,canvas.height,'white');await IOUtils.write('__SCREENSHOT__',Uint8Array.from(atob(canvas.toDataURL('image/png').split(',')[1]),c=>c.charCodeAt(0))); } catch(e) { results.push('Screenshot unavailable: '+e.message); }
    await IOUtils.writeUTF8(output,JSON.stringify({ok:true,version:Zotero.version,platform:Zotero.isWin?'Windows':'other',results},null,2));

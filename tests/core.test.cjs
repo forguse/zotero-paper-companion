@@ -140,7 +140,7 @@ test('translation note scope and formats stay independent without adding page me
 test('feature labels resolve each real model selection without inheriting the chat model',()=>{
  const settings={chatProvider:'deepseek',chatDeepseekModel:'deepseek-v4-pro',translationProvider:'chatgpt',translationChatGPTModel:'selected-translation',translationChatGPTEffort:'high',formulaProvider:'deepseek',summaryProvider:'chatgpt',summaryChatGPTModel:'selected-summary',summaryChatGPTEffort:'low'};
  assert.equal(C.featureModel(settings,'preread').model,'deepseek-v4-pro');assert.equal(C.featureModel(settings,'vocabulary').model,'selected-translation');assert.equal(C.featureModel(settings,'vocabulary-context').effort,'high');assert.equal(C.featureModel(settings,'vocabulary-ocr').model,'deepseek-flash');assert.equal(C.featureModel(settings,'review').model,'selected-summary');
- settings.translationChatGPTModel='';assert.match(C.featureModel(settings,'translation').label,/未选模型/);settings.chatProvider='chatgpt-web';assert.match(C.featureModel(settings,'chat').label,/网页选模型/);assert.throws(()=>C.featureModel(settings,'unknown'),/未知/);
+ settings.translationChatGPTModel='';assert.match(C.featureModel(settings,'translation').label,/未选模型/);settings.chatProvider='chatgpt-web';assert.equal(C.isChatProvider(settings.chatProvider),false);assert.equal(C.featureModel(settings,'chat').label,'未选引擎 · 未选模型');assert.throws(()=>C.featureModel(settings,'unknown'),/未知/);
 });
 test('all four reading palettes retain readable text and primary-button contrast',()=>{
  const luminance=hex=>hex.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4)).reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);

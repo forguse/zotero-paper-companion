@@ -12,11 +12,11 @@ addon = ROOT / 'addon'
 # never enter an install package merely because they were placed under addon/.
 RUNTIME_FILES = {
     'bootstrap.js', 'manifest.json',
-    'content/WebBridgeChild.sys.mjs', 'content/auth.js', 'content/core.js', 'content/persistence.js', 'content/sessions.js', 'content/edge-light.js', 'content/appearance.js', 'content/appearance.css', 'content/ui.js', 'content/chat-view.js', 'content/chat-drafts.js',
+    'content/auth.js', 'content/core.js', 'content/persistence.js', 'content/sessions.js', 'content/edge-light.js', 'content/appearance.js', 'content/appearance.css', 'content/ui.js', 'content/chat-view.js', 'content/chat-drafts.js',
     'content/icon.svg', 'content/insights.js', 'content/formula.js', 'content/math.js', 'content/native.js',
     'content/note-editor.js', 'content/panel.css', 'content/panel.js',
     'content/panel.xhtml', 'content/paper-files.js', 'content/sidebar.js', 'content/reading.js', 'content/preread.js',
-    'content/webview.js', 'content/usage-store.js', 'content/usage.js', 'content/usage-panel.js', 'locale/en-US/paper-companion.ftl',
+    'content/usage-store.js', 'content/usage.js', 'content/usage-panel.js', 'locale/en-US/paper-companion.ftl',
     'content/model-gateway.js', 'content/chat-service.js', 'content/settings-panel.js',
     'content/reading-scope.js', 'content/reading-scope-ui.js', 'content/note-insertions.js',
     'content/note-receipt-ui.js', 'content/action-guide.js', 'content/experience.css',

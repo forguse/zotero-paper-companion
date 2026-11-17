@@ -16,7 +16,7 @@ Zotero 要求插件清单包含 `update_url`，缺少该字段会拒绝安装。
 4. 将 `updates.json` 和 XPI 作为同一 Release 的附件发布，再核对未登录下载及文件校验和。若改用独立下载站，才需更改 `update_url`，并让使用者先安装配置好新地址的版本。
 5. 后续发布保持插件 ID 不变，并在安装包可下载后更新清单。
 
-这不会让运行中的任意源码修改立即生效。Zotero 的引导式插件有启动/停用生命周期，可在受支持的环境中重载，但版本兼容性、阅读器和网页状态仍可能影响更新后的行为；发布时应实际验证。用户遇到旧界面时可重启 Zotero。不要通过远程下载并执行脚本替代正常的 XPI 更新。
+这不会让运行中的任意源码修改立即生效。Zotero 的引导式插件有启动/停用生命周期，可在受支持的环境中重载，但版本兼容性和阅读器状态仍可能影响更新后的行为；发布时应实际验证。用户遇到旧界面时可重启 Zotero。不要通过远程下载并执行脚本替代正常的 XPI 更新。
 
 ### 维护者发布流程
 
@@ -58,8 +58,6 @@ python scripts/make_update_manifest.py --tag v版本号
 
 DeepSeek 的普通对话仍由请求中的消息提供上下文；服务端缓存影响计费，不能代替提供上下文。ChatGPT 授权请求当前使用不存储的 Responses 调用，也不假设账号支持服务器永久保存全文。
 
-ChatGPT 网页使用「传入预读草稿」，由用户点击网站发送。只有当前页面出现匹配的完整问答后才确认网页已处理预读；草稿、生成中和新网站对话不会当作已有上下文。网站历史是否仍在模型上下文窗口内最终由网站管理。
-
 ## 用量与费用来源
 
 输入区下方可展开今日、本篇和累计记录。只记录安装此功能之后本机插件实际发出的模型调用，不回填未知历史；数值来自服务返回的用量。未返回的用量标为未知，思考 Token 不在输出之外重复相加。费用以调用当时的单价快照估算，币种分开，不代表含税账单。
@@ -68,12 +66,12 @@ ChatGPT 网页使用「传入预读草稿」，由用户点击网站发送。只
 
 「查套餐额度」按 [OpenAI 官方账号与用量指引](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions#tracking-usage)打开 [ChatGPT 用量页](https://chatgpt.com/settings/usage)，不会发送模型请求或读取其他应用的登录凭据。当前插件的 Sign in with ChatGPT 直连授权没有已验证的套餐余量读取能力，因此插件内不显示剩余百分比。官方另为 [Codex App Server](https://learn.chatgpt.com/docs/app-server)提供 `account/rateLimits/read`，但这是另一套本地服务接口，不能直接当作当前授权可调用的 HTTP 端点，也不能用 Codex 桌面账号代替插件选中的账号。
 
-限制周期和重置时间以官方页的账号、工作区和适用套餐为准，不固定称为“月额度”。按当前[套餐规则](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions#tracking-usage)，Plus 的五小时用量由各应用共享，Pro 不适用这一五小时限制。API 等效金额不能换算为套餐剩余比例；普通网页 Chat 的限制仍以网页提示为准。核对于 2026-10-25。
+限制周期和重置时间以官方页的账号、工作区和适用套餐为准，不固定称为“月额度”。按当前[套餐规则](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions#tracking-usage)，Plus 的五小时用量由各应用共享，Pro 不适用这一五小时限制。API 等效金额不能换算为套餐剩余比例。核对于 2026-10-25。
 
 - [DeepSeek 价格](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)：默认按空闲至高峰显示费用区间，避免错误猜测节假日。
 - [OpenAI 价格](https://developers.openai.com/api/docs/pricing)：ChatGPT 授权显示 API 等价估算，不能当作 ChatGPT 套餐扣款。[套餐授权的用量规则](https://developers.openai.com/siwc/token-sharing-open-source)另由官方决定。
 - [DeepSeek 余额接口](https://api-docs.deepseek.com/zh-cn/api/get-user-balance/)：点击「查询余额」才请求；更改 API Key 后旧缓存失效。
 
-普通 ChatGPT 网页不提供插件可读取的官方 Token 或账单，因此显示「未提供」，不能算作免费。未知模型可填写自定义单价，仅影响未来调用。统计文件保存在本机插件配置目录，只含用量数字、模型和功能等元数据，不保存问题、论文正文或凭据。
+未知模型可填写自定义单价，仅影响未来调用。统计文件保存在本机插件配置目录，只含用量数字、模型和功能等元数据，不保存问题、论文正文或凭据。
 
 问答推理强度按模型目录或已核对的[官方模型能力](https://developers.openai.com/api/docs/guides/reasoning)提供选项。未知能力仅用模型默认；不支持的已存选择会明确报错，不自动降低强度或换模型。

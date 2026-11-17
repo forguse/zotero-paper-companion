@@ -48,6 +48,9 @@ html[data-pc-theme] .workspace-header .connection button{background:var(--paper)
 .appearance-swatch{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none}
 .appearance-config{display:flex;gap:6px;flex-wrap:wrap}.appearance-config>button[aria-pressed=true]{border-color:var(--green);color:var(--green);background:var(--soft)}
 .appearance-config+label{margin-top:12px}.appearance-config+label select{display:block;margin-top:5px;width:100%}
+/* The panel viewport owns a thin, non-flow boundary independently of its
+   internal cards. Keep it inside the iframe and transparent when at rest. */
+#workspace-frame{position:fixed;inset:0;box-sizing:border-box;border:1px solid transparent;pointer-events:none;contain:strict}
 .pc-edge-light{position:fixed;box-sizing:border-box;padding:1px;pointer-events:none!important;z-index:90;opacity:0;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;contain:strict}
 .pc-edge-history{z-index:89}
 .pc-edge-light{--edge-a:var(--edge-a-tone,var(--edge-spark));--edge-b:var(--edge-b-tone,var(--edge-color));--edge-c:var(--edge-c-tone,var(--edge-spark))}
@@ -187,7 +190,7 @@ html[data-pc-theme] body.web-expanded .send-row>#send{min-height:32px}
 .chat-log{position:relative;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .chat-log>.messages{flex:1;min-height:0;overflow-anchor:none}
 .chat-latest{position:absolute;right:var(--gutter);bottom:8px;min-height:32px;padding:5px 12px;border-radius:18px;background:var(--paper);color:var(--green);border:1px solid var(--border);box-shadow:0 3px 14px #20293818;font-size:12px;z-index:2}
-body[data-engine=chatgpt-web] .chat-log{display:none}
+body.web-expanded .chat-log{display:none}
 .chat-engine-info{margin:0 var(--gutter) 5px;padding:3px 0;color:var(--muted);font-size:12px}
 .chat-engine-info>summary{min-height:28px;cursor:pointer;display:flex;align-items:center;gap:5px}
 .chat-engine-info .engine-guide{margin:4px 0 7px}.chat-engine-info .conversation-hint{padding:0}
@@ -198,7 +201,7 @@ body[data-engine=chatgpt-web] .chat-log{display:none}
 
 .chat-save-warning{flex:none;display:flex;align-items:center;gap:8px;margin:0 var(--gutter) 6px;padding:7px 9px;border:1px solid var(--border);border-left:3px solid var(--red,#9b3232);border-radius:7px;background:var(--paper);color:var(--ink);font-size:12px;line-height:1.5}
 .chat-save-warning>span{flex:1;min-width:0}.chat-save-warning>button{flex:none;min-height:32px;font-size:12px}
-body[data-engine=chatgpt-web] .chat-save-warning{display:none}
+body.web-expanded .chat-save-warning{display:none}
 
 .chat-options-short{display:none}
 @media(max-width:300px){
@@ -223,14 +226,15 @@ html[data-pc-theme] :is(.vocab-files,.note-footer){background-color:var(--glass)
 :host([data-pc-theme]) :is(.pc-row,.pc-excerpt-row,.pc-vocabulary-row){border-color:var(--border)}
 .pc-context-toast{background-color:var(--glass)!important;background-image:var(--theme-popup)!important;backdrop-filter:blur(var(--theme-blur))}
 /* One cached, local mist-light asset supplies cloud texture, never text layers. */
-html[data-pc-theme=cloud] body{background-image:linear-gradient(180deg,#FAFAF733,#FAFAF773 240px,#F3F5F4 380px),url(theme-cloud-mist.webp),var(--theme-atmosphere);background-size:100% 380px,100% 380px,auto;background-repeat:no-repeat}
+html[data-pc-theme=cloud] body{background-image:linear-gradient(180deg,#FAFAF72b,#FAFAF766 260px,#F3F5F4 420px),url(theme-cloud-mist.webp),var(--theme-atmosphere);background-size:100% 420px,100% 420px,auto;background-repeat:no-repeat}
 html[data-pc-theme=cloud] .workspace-header{background-color:#FAFCF970;background-image:linear-gradient(110deg,#FFFFFF70,#DFE8EC40);backdrop-filter:blur(5px)}
-html[data-pc-theme=cloud] #vocabulary-window{background-image:linear-gradient(180deg,#FAFAF733,#FAFAF7b3 210px,#FAFAF7 340px),url(theme-cloud-mist.webp);background-size:100% 340px,100% 340px;background-repeat:no-repeat}
+html[data-pc-theme=cloud] #vocabulary-window{background-image:linear-gradient(180deg,#FAFAF72b,#FAFAF7a6 230px,#FAFAF7 370px),url(theme-cloud-mist.webp);background-size:100% 370px,100% 370px;background-repeat:no-repeat}
 html[data-pc-theme=cloud] .vocab-window-body .vocab-heading{background-color:#FAFCF970;background-image:linear-gradient(110deg,#FFFFFF70,#DFE8EC40);backdrop-filter:blur(5px)}
 /* Header pigment belongs to the shared atmosphere. Its soft tail reaches the
    navigation instead of ending in a rectangular panel at the paper selector. */
 html[data-pc-theme] .workspace-header{position:relative;isolation:isolate;background:transparent;border-bottom-color:transparent;box-shadow:none;backdrop-filter:none}
 html[data-pc-theme] .workspace-header:before{content:'';position:absolute;z-index:-1;inset:0 0 -96px;pointer-events:none;background-color:var(--glass);background-image:var(--theme-header);backdrop-filter:blur(var(--theme-blur));mask-image:linear-gradient(180deg,#000 0%,#000 38%,#0009 65%,transparent 100%)}
+html[data-pc-theme=cloud] .workspace-header:before{bottom:-114px}
 :host([data-pc-theme=cloud]) .pc-body{background-image:linear-gradient(180deg,#FAFAF760,#FAFAF7f5 230px),url(theme-cloud-mist.webp);background-size:100% 100%,100% 230px;background-repeat:no-repeat}
 .pc-context-toast[data-pc-theme=cloud]{background-image:linear-gradient(180deg,#FAFAF760,#FAFAF7f5),url(theme-cloud-mist.webp)!important;background-size:100% 100%,100% 100%;background-repeat:no-repeat}
 @supports not (backdrop-filter:blur(1px)){

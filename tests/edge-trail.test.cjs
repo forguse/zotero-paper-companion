@@ -88,3 +88,18 @@ test('theme border colors keep the approved primary and add real hue separation 
     }
   }
 });
+
+test('viewport border accepts underlying panel content but never modal or popover content',()=>{
+  const body={},frame={id:'workspace-frame',parentElement:body},content={closest:()=>null};
+  let hit=content;
+  const doc={body,documentElement:{contains:node=>node===hit},elementFromPoint:()=>hit};
+  const light={scope:doc,doc},target={node:frame,rect:{left:0,top:0},widths:{left:1}};
+  assert.equal(Light.prototype.visibleAt.call(light,target,{x:0,y:50,edge:'left'}),true);
+  hit={closest:selector=>selector.includes('dialog[open]')?{}:null};
+  assert.equal(Light.prototype.visibleAt.call(light,target,{x:0,y:50,edge:'left'}),false);
+  hit={closest:selector=>selector.includes('[popover]')?{}:null};
+  assert.equal(Light.prototype.visibleAt.call(light,target,{x:0,y:50,edge:'left'}),false);
+  hit=null;
+  assert.equal(Light.prototype.visibleAt.call(light,target,{x:0,y:50,edge:'left'}),false);
+  assert.equal(Trail.radius*2,72);assert.equal(Trail.duration,2500);
+});

@@ -64,7 +64,7 @@ class PCEdgeTrail {
 }
 
 class PCEdgeLight {
-  static targets='.composer,.composer textarea,.paper-row,.chat-log,.message.user .message-body,.vocab-card,dialog[open],.pc-body,.pc-context-toast,.workspace-header,.tabs,.translation-result,.note-toolbar,.note-footer,.note-render-label,#note-preview,.note-source,.insight-stage>article,.appearance-edge-preview';
+  static targets='#workspace-frame,.composer,.composer textarea,.paper-row,.chat-log,.message.user .message-body,.vocab-card,dialog[open],.pc-body,.pc-context-toast,.workspace-header,.tabs,.translation-result,.note-toolbar,.note-footer,.note-render-label,#note-preview,.note-source,.insight-stage>article,.appearance-edge-preview';
   static menus='.appearance-menu:not([hidden]),.quick-menu:not([hidden]),.web-more-menu:not([hidden]),.screenshot-options:not([hidden]),.organization-menu[open] .highlights-bar,.note-manage[open] .note-manage-menu,.reading-scope[open] .reading-scope-details';
   constructor({root,scope}) {
     this.root=root;this.doc=root.ownerDocument;this.win=this.doc.defaultView;this.scope=scope||this.doc;this.leaveRoot=this.scope.host||this.scope;
@@ -164,6 +164,10 @@ class PCEdgeLight {
     const inset=Math.max(.01,Math.min(.5,target.widths[point.edge]/2));
     const x=target.rect.left+point.x+(point.edge==='left'?inset:point.edge==='right'?-inset:0),y=target.rect.top+point.y+(point.edge==='top'?inset:point.edge==='bottom'?-inset:0);
     const hit=typeof this.scope.elementFromPoint==='function'?this.scope.elementFromPoint(x,y):this.doc.elementFromPoint(x,y);
+    // The decorative viewport frame is deliberately pointer-transparent. Its
+    // underlying panel content owns the hit, except for modal/top-layer UI.
+    if(target.node.id==='workspace-frame'&&target.node.parentElement===this.doc.body&&this.scope===this.doc)
+      return !!hit&&this.doc.documentElement.contains(hit)&&!hit.closest('dialog[open],[popover]');
     return !!hit&&(hit===target.node||target.node.contains(hit)||hit===this.scope.host);
   }
   paint() {

@@ -85,8 +85,8 @@ function startup() {
         const paper = await pc.paperInfo(item.id);
         const note = '# 冷重启保存检查\n\n这是一份合成笔记，重启后仍应可直接编辑。\n';
         const messages = [
-          { role: 'user', text: '重启后是否还保留本篇的阅读记录？', status: 'complete', at: 1 },
-          { role: 'assistant', provider: 'deepseek', model: 'deepseek-flash', text: '这条合成回答用于检查会话保存，不调用在线模型。', status: 'complete', at: 2 }
+          { role: 'user', text: '重启后是否还保留本篇的阅读记录？', status: 'complete', at: 1, webVerified: true, webRequestID: 'legacy-web-turn' },
+          { role: 'assistant', provider: 'chatgpt-web', text: '这条合成回答用于检查会话保存，不调用在线模型。', status: 'complete', at: 2, webVerified: true, webRequestID: 'legacy-web-turn', webConversation: '/c/legacy-test' }
         ];
         await pc.saveAppearance({ theme: 'warm', appearanceMotion: 'standard', edgeLight: true });
         await pc.saveSettings({ chatProvider: 'deepseek', smartReading: false, headerCollapsed: false });
@@ -111,6 +111,7 @@ function startup() {
         const paper = await pc.paperInfo(phase.paperID);
         check(paper.key === phase.paperKey, 'cold restart preserves the per-paper data key');
         check(pc.settings.theme === phase.theme, 'saved warm theme survives cold restart');
+        check(pc.settings.chatProvider === '' && pc.settings.chatDeepseekModel === 'deepseek-flash' && pc.settings.smartReading === false, 'legacy webpage choice becomes unselected and preserves other settings');
         check(await pc.note(paper) === phase.note, 'exact note Markdown survives cold restart');
         check(JSON.stringify((await pc.session(paper.key)).messages) === JSON.stringify(phase.messages), 'exact saved conversation survives cold restart');
       }
@@ -123,6 +124,7 @@ function startup() {
       const entry = await registryEntry();
       diagnostics.registry = { id: entry.id, version: entry.version, location: entry.location, path: entry.path, active: entry.active };
       check(entry.location === 'app-profile' && entry.version === pc.publicState().version, stage + ' registry persists the same installed version in app-profile');
+      check(!pc.web, stage + ' does not start the retired webpage service');
       await Zotero.Reader.open(phase.paperID);
       await pc.openPanel({ readerID: phase.paperID });
       await wait(() => pc.panel?.document?.body?.dataset.ready === 'true', 'actual registered sidebar');
@@ -131,12 +133,28 @@ function startup() {
       check(pc.panel.pcEmbedded && pc.sidebar.frames.has(win.frameElement), stage + ' opens the actual registered Zotero sidebar');
       check(doc.documentElement.dataset.pcTheme === 'warm' && doc.getElementById('theme-toggle').textContent.includes('暖砂霞光'), stage + ' sidebar renders the saved warm theme');
       check(doc.getElementById('messages').textContent.includes(phase.messages[0].text) && doc.getElementById('messages').textContent.includes(phase.messages[1].text), stage + ' sidebar renders the saved synthetic conversation');
+      for (const id of ['provider', 'default-provider']) {
+        const select = doc.getElementById(id);
+        check(Array.from(select.options, option => option.value).join(',') === ',deepseek,chatgpt', stage + ' ' + id + ' offers only DeepSeek API and ChatGPT login');
+      }
+      check(!doc.querySelector('[id^="web-"]'), stage + ' has no webpage controls');
+      if (stage === 'restart') {
+        await win.paperCompanionActivate({ action: 'model-settings', feature: 'chat' });
+        check(doc.activeElement === doc.getElementById('provider'), 'unselected model settings focus the engine selector');
+        const picker = doc.getElementById('provider');
+        picker.value = 'chatgpt'; picker.dispatchEvent(new win.Event('change', { bubbles: true }));
+        await wait(() => pc.settings.chatProvider === 'chatgpt', 'explicit ChatGPT login choice');
+        check(requests.length === 0, 'choosing ChatGPT login does not connect automatically');
+      }
       doc.getElementById('nav-notes').click();
       await wait(() => doc.getElementById('note-preview').textContent.includes('这是一份合成笔记'), 'editable saved note');
       check(doc.getElementById('note-preview').getAttribute('contenteditable') === 'true', stage + ' retained note is directly editable');
       await capture(win);
       check(requests.length === 0, stage + ' installation, startup and restored content make no model request');
-      if (stage === 'install') await IOUtils.writeUTF8(phaseFile, JSON.stringify(phase, null, 2));
+      if (stage === 'install') {
+        await IOUtils.writeUTF8(PathUtils.join(pc.dir, 'settings.json'), JSON.stringify({ ...pc.settings, chatProvider: 'chatgpt-web' }));
+        await IOUtils.writeUTF8(phaseFile, JSON.stringify(phase, null, 2));
+      }
       await IOUtils.writeUTF8(resultFile, JSON.stringify({ ok: true, stage, results, diagnostics, requests }, null, 2));
     } catch (e) {
       diagnostics.panel ||= pc?.panel && { uri: pc.panel.document?.documentURI, ready: pc.panel.document?.body?.dataset.ready, initError: pc.panel.document?.body?.dataset.initError };

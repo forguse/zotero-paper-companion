@@ -18,7 +18,6 @@ var PaperCompanion = new (class {
     this.settings.summaryPrompt = PCInsights.defaultPrompts.summary; this.settings.reviewPrompt = PCInsights.defaultPrompts.review;
     this.settings.formulaProvider = 'deepseek'; this.settings.formulaChatGPTModel = '';
     this.settings.smartReading = true;
-    this.settings.webCompactComposer = true;
     this.settings.headerCollapsed = true;
     this.settings.chatOptionsCollapsed = true; this.settings.materialsCollapsed = true;
     this.settings.translationExcerptStyle = 'markdown';
@@ -44,6 +43,8 @@ var PaperCompanion = new (class {
     await this.writeJSON(PathUtils.join(this.dir, "accounts.json"), this.meta);
     const savedSettings = await this.readJSON(PathUtils.join(this.dir, "settings.json"), {});
     Object.assign(this.settings, savedSettings);
+    // Older installs may still select the retired webpage provider.
+    if (!PCore.isChatProvider(this.settings.chatProvider)) this.settings.chatProvider = "";
     const guideIDs = ['questions','screenshot','formula','notes','highlights','vocabulary','practice'];
     this.settings.actionGuidePins = [...new Set(Array.isArray(savedSettings.actionGuidePins) ? savedSettings.actionGuidePins.filter(id => guideIDs.includes(id)) : [])].slice(0, 2);
     this.settings.actionGuideDismissed = savedSettings.actionGuideDismissed === true;
@@ -73,7 +74,6 @@ var PaperCompanion = new (class {
       readMeta: async () => this.meta, readSecrets: () => this.readSecrets(),
       setAccount: (a, t) => this.setAccount(a, t), setToken: (id, t) => this.setToken(id, t)
     });
-    this.web = new PCWebView(this); this.web.init();
     this.insights = new PCInsights(this); await this.insights.init();
     this.formula = new PCFormula(this);
     this.reading = new PCReading(this);
@@ -150,8 +150,8 @@ var PaperCompanion = new (class {
       [this.files,['ensure','relocate','create']],
       [this.vocabulary,['add','edit','removeEncounter','restoreEncounter','enrich','beginManual','setContext','acceptSelection','autoContext','assistContext','reviewed','feedback','openFile','relocate','importBackup']],
       [this.reading,['load','prepare','search']], [this.preread,['plan','run']],
-      [this.insights,['setEnabled','manualUpdate','enqueue','review','watchWeb']],
-      [this.formula,['capture','recognize','insert']], [this.web,['open','fill','preread','attach','reload']],
+      [this.insights,['setEnabled','manualUpdate','enqueue','review']],
+      [this.formula,['capture','recognize','insert']],
       [this.usage,['setRate','queryBalance']]
     ]) this.guardMaintenance(object, names);
   }
@@ -163,7 +163,7 @@ var PaperCompanion = new (class {
     // another save, model request, picker, vocabulary action or reader task.
     this.maintenance = 'draining'; this.guardMaintenanceServices();
     this.uninstallState = { changed: false, removed: new Set(), sourceRevision: 0, checkedRevision: null,
-      readingClosing: this.reading?.closing, insightsDestroyed: this.insights?.destroyed, inert: [], watches: [...(this.insights?.watches || new Map()).entries()] };
+      readingClosing: this.reading?.closing, insightsDestroyed: this.insights?.destroyed, inert: [] };
     const state = this.uninstallState;
     try {
       if ([...this.nativeOperations.values()].some(name => ['exportMaterials','exportNote','choosePaperFolder','chooseVocabularyFolder','vocabularyBackupFile','changePaperFolder','relocate','create','importBackup','appendExcerpt','appendPaperNote'].includes(name))) throw new Error('请先完成正在进行的资料保存、搬迁或文件选择操作，再重新核对清单。');
@@ -196,7 +196,6 @@ var PaperCompanion = new (class {
     if (this.insights) this.insights.destroyed = state.insightsDestroyed;
     if (state.memory) { this.meta = state.memory.meta; this.models = state.memory.models; this.lastSelection = state.memory.lastSelection; this.lastFormulaCopy = state.memory.lastFormulaCopy; this.inferenceVerified = state.memory.inferenceVerified; for (const [key,value] of state.memory.sessions) this.sessions.set(key,value); for (const [key,value] of state.memory.translations) this.translations.set(key,value); }
     this.maintenance = null; this.uninstallState = null;
-    for (const [win, watch] of state.watches) if (!win.closed && this.insights && !this.insights.destroyed) this.paperFromKey(watch.key).then(paper => { if (!this.maintenance) this.insights.watchWeb(win, paper); }).catch(() => {});
     this.emit('maintenance', { active: false }); return true;
   }
   async inspectUninstallFile(path) {
@@ -396,6 +395,7 @@ var PaperCompanion = new (class {
     return this.queue(async () => { const secrets = await this.readSecrets(); secrets.openai ||= {}; if (token) secrets.openai[id] = token; else delete secrets.openai[id]; await this.writeSecrets(secrets); });
   }
   async saveSettings(settings, key) {
+    if ("chatProvider" in settings && !PCore.isChatProvider(settings.chatProvider)) throw new Error("请选择 DeepSeek API 或 ChatGPT 登录。");
     if ('actionGuidePins' in settings) {
       const ids = ['questions','screenshot','formula','notes','highlights','vocabulary','practice'];
       if (!Array.isArray(settings.actionGuidePins) || settings.actionGuidePins.some(id => !ids.includes(id))) throw new Error('请选择有效的固定入口。');
@@ -482,7 +482,7 @@ var PaperCompanion = new (class {
     this.vocabulary?.cancel();
     this.formula?.destroy();
     this.readingSearchController?.abort(); this.readingDraftController?.abort();
-    ++this.epoch; this.state = "offline"; this.connectController?.abort(); this.chatController?.abort();
+    ++this.epoch; this.state = "offline"; this.connectController?.abort(); this.chatService?.stop();
     this.translationController?.abort(); this.extractController?.abort();
     for (const xhr of this.requests) { try { xhr.abort(); } catch (_) {} }
     this.emit("connection");
@@ -929,13 +929,8 @@ var PaperCompanion = new (class {
     this.panel = win.openDialog(this.resourceURL('panel.xhtml'), "paper-companion", "chrome,dialog=no,resizable,centerscreen,width=510,height=800", { api: this, action });
   }
   panelClosed(win) {
-    this.web.close(win); this.panels.delete(win); if (this.panel === win) this.panel = [...this.panels].find(w => !w.closed) || null;
+    this.panels.delete(win); if (this.panel === win) this.panel = [...this.panels].find(w => !w.closed) || null;
     if (!this.panels.size) this.disconnect(); this.flushNotes().catch(e => Zotero.logError(e));
-  }
-  webChat(prompt, context) {
-    this.copy((context ? `论文：${context.title}\n${context.label}\n\n${context.text}\n\n` : "") + prompt);
-    this.openURL("https://chatgpt.com/");
-    return !!(context?.image || context?.images?.length || context?.file);
   }
   async exportMaterials(context) {
     if (!context) throw new Error("请先附加材料。");
@@ -988,11 +983,13 @@ var PaperCompanion = new (class {
     });
     return this.chatService;
   }
-  get chatBusy() { return this.chatService?.busy || false; }
+  get chatBusy() { return !!this.chatService?.busy; }
   set chatBusy(value) { this.getChatService().busy = !!value; } // Compatibility bridge for existing integrations.
   get chatController() { return this.chatService?.controller; }
-  get chatCompletion() { return this.chatService?.completion; }
+  get chatCompletion() { return Promise.allSettled([this.chatService?.completion].filter(Boolean)); }
   async ask(key, prompt, context, onDelta, readingOptions = {}) {
+    if (this.chatBusy) throw new Error('请等待当前回答完成，或点击停止。');
+    if (this.closing || this.maintenance || this.sessionRestoring || this.sessionChanging) throw new Error('正在关闭、清理或切换对话，请稍后提问。');
     return this.getChatService().ask(key, prompt, context, onDelta, readingOptions);
   }
   stop() { this.preread.destroy(); this.chatService?.stop(); this.translationController?.abort(); this.extractController?.abort(); this.readingSearchController?.abort(); this.readingDraftController?.abort(); }
@@ -1226,7 +1223,7 @@ var PaperCompanion = new (class {
     this.formula?.destroy();
     const readingDrain = this.reading?.destroy();
     for (const popup of this.selectionPopups) {popup.timer?.cancel();popup.appearance?.destroy();} this.selectionPopups.clear(); this.popupNoteDrafts.clear();this.clearVocabularyContext();
-    this.web?.destroy(); this.sidebar?.destroy(); for (const win of this.panels) if (!win.closed && !win.pcEmbedded) win.close();
+    this.sidebar?.destroy(); for (const win of this.panels) if (!win.closed && !win.pcEmbedded) win.close();
     Zotero.Reader.unregisterEventListener("renderTextSelectionPopup", this.selectionHandler);
     Zotero.Reader.unregisterEventListener("renderToolbar", this.toolbarHandler);
     for (const win of [...this.windows.keys()]) this.removeWindow(win);

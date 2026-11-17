@@ -19,7 +19,7 @@ var PCPreRead = class {
   update(key, text, error = false) { this.status.set(key, { text, error }); this.api.emit('preread', { key, text, error }); }
   config() {
     const s = this.api.settings, provider = s.chatProvider;
-    if (!['deepseek','chatgpt'].includes(provider)) throw new Error('模型预读需要选择 API 或 ChatGPT 授权。网页模式请使用「预读草稿」，并由你在网站发送。');
+    if (!['deepseek','chatgpt'].includes(provider)) throw new Error('模型预读需要选择 DeepSeek API 或 ChatGPT 登录。');
     const model = provider === 'deepseek' ? s.chatDeepseekModel : s.model, effort = provider === 'deepseek' ? 'none' : s.chatGPTEffort;
     if (provider === 'chatgpt' && !PCore.reasoningEfforts(model, this.api.models.find(m => m.id === model)?.reasoningEfforts).includes(effort)) throw new Error('预读模型不支持当前推理强度，请重新选择。');
     return { provider, model, effort };

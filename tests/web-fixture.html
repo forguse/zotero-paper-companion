@@ -1,4 +1,131 @@
 <!doctype html><meta charset="utf-8"><title>Chat handoff fixture</title>
 <style>body{font:14px system-ui;margin:12px}textarea,[contenteditable]{width:90%;min-height:100px;border:1px solid #999;padding:8px}button{padding:8px}</style>
 <body data-changes="0" data-sends="0"><p>Test-only web composer</p><div data-message-author-role="user" data-message-id="q-one">What is the result?</div><div data-message-author-role="assistant" data-message-id="a-one"><div class="markdown">WEB_FACT_MARKER: the controller reduced spill risk.</div></div><textarea id="prompt-textarea">Existing draft</textarea><input id="files" type="file" multiple accept="image/png,application/pdf"><button id="send">Send</button>
-<script>document.getElementById('files').addEventListener('change',()=>document.body.dataset.changes=String(Number(document.body.dataset.changes)+1));document.getElementById('send').addEventListener('click',()=>document.body.dataset.sends=String(Number(document.body.dataset.sends)+1));</script>
+<script>
+(() => {
+  const doc = document, body = doc.body, files = doc.getElementById('files'), send = doc.getElementById('send'); let timers = [], sequence = 0, submissions = [], composerTimer = 0;
+  const voice = doc.createElement('button'); voice.id = 'fixture-voice'; voice.type = 'button'; voice.setAttribute('aria-label', 'Start voice'); voice.textContent = 'Voice'; voice.hidden = true; send.after(voice);
+  voice.addEventListener('click', () => { body.dataset.voiceClicks = String(Number(body.dataset.voiceClicks || 0) + 1); });
+  const later = (callback, ms) => { const timer = setTimeout(callback, ms); timers.push(timer); };
+  const editor = () => [...doc.querySelectorAll('textarea,[contenteditable="true"]')].find(node => !node.disabled && !node.hidden && (node.id === 'prompt-textarea' || node.id === 'mobile-composer-prompt' || node.classList.contains('ProseMirror')));
+  const mountSend = () => { if (!send.isConnected) voice.before(send); };
+  const refreshComposer = () => {
+    clearTimeout(composerTimer); composerTimer = 0;
+    if (body.dataset.dynamicSend !== 'true') { mountSend(); send.hidden = false; voice.hidden = true; return; }
+    const input = editor(), text = String(input?.value ?? input?.innerText ?? input?.textContent ?? '').trim();
+    send.hidden = true; voice.hidden = !!doc.querySelector('[data-testid="stop-button"]');
+    // The real mobile empty state has no Send node at all. A hidden node would
+    // accidentally satisfy the actor's old form.querySelector precondition.
+    if (body.dataset.mobileComposer === 'true') send.remove();
+    if (!text || body.dataset.missingSend === 'true') return;
+    composerTimer = setTimeout(() => {
+      composerTimer = 0;
+      const current = editor(), value = String(current?.value ?? current?.innerText ?? current?.textContent ?? '').trim();
+      if (body.dataset.dynamicSend === 'true' && value && body.dataset.missingSend !== 'true') { mountSend(); send.hidden = false; voice.hidden = true; }
+    }, Number(body.dataset.sendDelay) || 300);
+  };
+  doc.addEventListener('input', event => { const input = editor(); if (event.target === input || input?.contains(event.target)) refreshComposer(); });
+  const clearGeneration = () => { for (const timer of timers) clearTimeout(timer); timers = []; doc.querySelector('[data-testid="stop-button"]')?.remove(); send.disabled = false; refreshComposer(); };
+  files.addEventListener('change', () => {
+    body.dataset.changes = String(Number(body.dataset.changes) + 1);
+    if (!body.dataset.bridgeMode) return;
+    const root = editor()?.closest('form') || body, box = doc.createElement('div'); box.setAttribute('data-testid', 'attachment-list');
+    for (const file of files.files) { const chip = doc.createElement('div'); chip.setAttribute('data-testid', 'attachment-file'); chip.textContent = file.name; box.append(chip); }
+    const progress = doc.createElement('div'); progress.setAttribute('role', 'progressbar'); progress.textContent = 'Uploading'; box.append(progress); root.append(box); send.disabled = true;
+    if (body.dataset.uploadFailure !== 'true') later(() => { progress.remove(); send.disabled = false; }, Number(body.dataset.uploadDelay) || 120);
+  });
+  send.addEventListener('click', () => {
+    body.dataset.sends = String(Number(body.dataset.sends) + 1);
+    const input = editor(), text = input?.value ?? input?.innerText ?? input?.textContent ?? '', number = ++sequence;
+    submissions.push({ text, files: [...files.files].map(file => ({ name: file.name, type: file.type, size: file.size })) }); if (submissions.length > 16) submissions.shift();
+    if (!body.dataset.bridgeMode || body.dataset.bridgeMode === 'no-ack') return;
+    const searchUnits = body.dataset.searchUnits === 'true', modernRoles = !searchUnits && body.dataset.modernRoles === 'true', user = doc.createElement(modernRoles ? 'li' : 'div'), assistant = doc.createElement(modernRoles ? 'li' : 'article'), content = doc.createElement('div'); let unitState;
+    if (searchUnits) {
+      const userID = '30000000-0000-4000-8000-' + String(number).padStart(12, '0'), answerID = '40000000-0000-4000-8000-' + String(number).padStart(12, '0');
+      let transcript = doc.querySelector('[data-thread-find-target="conversation"]'); if (!transcript) { transcript = doc.createElement('div'); transcript.setAttribute('data-thread-find-target', 'conversation'); body.prepend(transcript); }
+      const turn = doc.createElement('div'); turn.setAttribute('data-turn-key', userID); unitState = doc.createElement('div'); unitState.setAttribute('data-talvt-turn-state', 'streaming'); turn.append(unitState); transcript.append(turn);
+      const userBlock = doc.createElement('div'), heading = doc.createElement('h4'); heading.setAttribute('data-conversation-role', 'user'); heading.textContent = 'You said:'; userBlock.append(heading, user);
+      user.setAttribute('data-chatgpt-search-unit-key', 'fallback-turn-' + number + ':0:user'); user.setAttribute('data-chatgpt-search-message-ids', userID);
+      const bubble = doc.createElement('div'); bubble.setAttribute('data-user-message-bubble', 'true'); bubble.className = 'whitespace-pre-wrap'; bubble.textContent = text; user.append(bubble);
+      const answerBlock = doc.createElement('div'), answerHeading = doc.createElement('h4'); answerHeading.setAttribute('data-conversation-role', 'assistant'); answerHeading.textContent = 'ChatGPT said:';
+      assistant.setAttribute('data-chatgpt-search-unit-key', 'fallback-turn-' + number + ':2:assistant'); assistant.setAttribute('data-chatgpt-search-message-ids', answerID + ' ' + answerID);
+      content.setAttribute('data-markdown-text-style', 'assistant-message'); assistant.append(answerHeading); answerBlock.append(assistant); unitState.append(userBlock, answerBlock);
+      const copy = doc.createElement('button'); copy.setAttribute('aria-label', 'Copy'); copy.textContent = 'Copy'; assistant.append(copy);
+    } else if (modernRoles) {
+      user.setAttribute('data-message-role', 'user'); user.id = '10000000-0000-4000-8000-' + String(number).padStart(12, '0');
+      const copyText = doc.createElement('p'); copyText.setAttribute('data-user-message-copy', ''); copyText.textContent = text; user.append(copyText);
+      const toolbar = doc.createElement('button'); toolbar.textContent = 'Fixture user toolbar'; user.append(toolbar);
+      assistant.setAttribute('data-message-role', 'assistant'); assistant.id = '20000000-0000-4000-8000-' + String(number).padStart(12, '0'); content.setAttribute('data-assistant-markdown-root', '');
+      let transcript = doc.querySelector('ol[data-conversation-transcript]'); if (!transcript) { transcript = doc.createElement('ol'); transcript.setAttribute('data-conversation-transcript', ''); body.prepend(transcript); } transcript.append(user, assistant);
+    } else {
+      user.setAttribute('data-message-author-role', 'user'); user.setAttribute('data-message-id', 'bridge-user-' + number); user.textContent = text;
+      assistant.setAttribute('data-message-author-role', 'assistant'); assistant.setAttribute('data-message-id', 'bridge-assistant-' + number); content.className = 'markdown';
+      const old = [...doc.querySelectorAll('[data-message-author-role]')].at(-1); if (old) old.after(user, assistant); else body.prepend(user, assistant);
+    }
+    assistant.append(content);
+    body.dataset.conversation = '/c/fixture-conversation';
+    if (input) { if (input.localName === 'textarea') input.value = ''; else input.textContent = ''; }
+    files.value = ''; for (const chip of doc.querySelectorAll('[data-testid="attachment-list"]')) chip.remove();
+    send.disabled = true;
+    const stop = doc.createElement('button'); stop.setAttribute('data-testid', 'stop-button'); stop.setAttribute('aria-label', 'Stop streaming'); stop.textContent = 'Stop'; send.after(stop);
+    if (!searchUnits) assistant.setAttribute('data-is-streaming', 'true');
+    else stop.remove(); // New DOM state is the only streaming signal here.
+    stop.addEventListener('click', () => { body.dataset.stops = String(Number(body.dataset.stops || 0) + 1); clearGeneration(); assistant.removeAttribute('data-is-streaming'); if (unitState) unitState.setAttribute('data-talvt-turn-state', 'complete'); });
+    refreshComposer();
+    later(() => { const p = doc.createElement('p'); p.textContent = 'BRIDGE_STREAM_PARTIAL'; content.append(p); }, 80);
+    later(() => {
+      if (body.dataset.bridgeMode === 'error') { const alert = doc.createElement('div'); alert.setAttribute('role', 'alert'); alert.textContent = 'Fixture request failed'; assistant.append(alert); clearGeneration(); assistant.removeAttribute('data-is-streaming'); return; }
+      if (body.dataset.bridgeMode === 'never-finish') return;
+      content.replaceChildren();
+      const p = doc.createElement('p'); p.textContent = body.dataset.reply || 'BRIDGE_FINAL: the controller reduced spill risk.'; content.append(p);
+      const list = doc.createElement('ul'); for (const text of ['One local observation', 'A second supported finding']) { const item = doc.createElement('li'); item.textContent = text; list.append(item); } content.append(list);
+      const pre = doc.createElement('pre'), code = doc.createElement('code'); code.className = 'language-python'; code.textContent = 'answer = 42\n\nprint(answer)'; pre.append(code); content.append(pre);
+      const math = doc.createElement('span'); math.className = 'katex'; const annotation = doc.createElement('annotation'); annotation.setAttribute('encoding', 'application/x-tex'); annotation.textContent = 'E=mc^2'; math.append(annotation); content.append(math);
+      if (searchUnits) unitState.setAttribute('data-talvt-turn-state', 'complete');
+      else if (modernRoles) assistant.setAttribute('data-message-complete', '');
+      else { const copy = doc.createElement('button'); copy.setAttribute('data-testid', 'copy-turn-action-button'); copy.textContent = 'Copy'; assistant.append(copy); }
+      clearGeneration(); assistant.removeAttribute('data-is-streaming');
+    }, Number(body.dataset.streamDelay) || 500);
+  });
+  window.pcWebFixture = {
+    reset() { clearGeneration(); for (const node of doc.querySelectorAll('[data-message-author-role],ol[data-conversation-transcript],[data-thread-find-target="conversation"],[role="alert"],[data-testid="attachment-list"],#fixture-challenge')) node.remove(); const input = editor(); if (input) { if (input.localName === 'textarea') input.value = ''; else input.textContent = ''; } files.value = ''; body.dataset.conversation = '/'; refreshComposer(); },
+    useMobileComposer() {
+      const old = editor(), root = old?.closest('form') || old, form = doc.createElement('form'), branch = doc.createElement('div'), input = doc.createElement('textarea'), toolbar = doc.createElement('div');
+      form.setAttribute('data-type', 'unified-composer'); input.id = 'mobile-composer-prompt'; input.placeholder = 'Ask ChatGPT'; branch.append(input);
+      toolbar.id = 'composer-toolbar'; toolbar.append(files, send, voice); form.append(branch, toolbar); if (root) root.replaceWith(form); else body.append(form);
+      doc.getElementById('fixture-associated-toolbar')?.remove();
+      form.addEventListener('submit', event => event.preventDefault()); body.dataset.mobileComposer = 'true';
+    },
+    configureSendControl({ layout = 'form', label = 'Send prompt', semanticOnly = false, legacy = false } = {}) {
+      const input = editor(), form = input?.closest('form'), branch = input?.parentElement, toolbar = voice.parentElement;
+      // The narrow composer wrapper intentionally contains no toolbar. The
+      // submit button still belongs to the same actual HTML form, including
+      // when its toolbar is rendered outside the form using form="...".
+      if (form && branch && toolbar) {
+        form.id = 'fixture-owned-composer';
+        form.setAttribute('data-mobile-composer', '');
+        if (layout === 'form') {
+          branch.removeAttribute('data-type'); form.setAttribute('data-type', 'unified-composer');
+        } else {
+          form.removeAttribute('data-type'); branch.setAttribute('data-type', 'unified-composer');
+        }
+        if (layout === 'associated') {
+          toolbar.id = 'fixture-associated-toolbar'; form.after(toolbar);
+          send.setAttribute('form', form.id); files.setAttribute('form', form.id);
+        } else {
+          toolbar.id = 'composer-toolbar'; form.append(toolbar);
+          send.removeAttribute('form'); files.removeAttribute('form');
+        }
+      }
+      send.id = legacy ? 'send' : 'fixture-owned-submit';
+      send.type = legacy ? 'button' : 'submit';
+      if (legacy) send.setAttribute('data-testid', 'send-button'); else send.removeAttribute('data-testid');
+      if (semanticOnly) send.removeAttribute('aria-label'); else send.setAttribute('aria-label', label);
+      body.dataset.sendControlLayout = layout;
+      body.dataset.sendControlSemantic = String(semanticOnly);
+    },
+    configureComposer: refreshComposer, stop: clearGeneration,
+    get sendNode() { return send; }, get lastSubmission() { return submissions.at(-1) || null; }
+  };
+})();
+</script>

@@ -59,6 +59,22 @@ function startup() {
     for(let y=Math.ceil((cr.top+20)*scale);y<Math.floor((cr.bottom-20)*scale);y++)for(let x=Math.floor(cr.left*scale);x<Math.ceil((cr.left+2)*scale);x++){const i=(y*before.width+x)*4,d=Math.max(...[0,1,2].map(c=>Math.abs(a[i+c]-b[i+c])));max=Math.max(max,d);if(d>=24)strong++;}
     for(let y=Math.ceil((cr.top+58)*scale);y<Math.floor((cr.bottom-38)*scale);y++)for(let x=Math.ceil((cr.left+50)*scale);x<Math.floor((cr.left+100)*scale);x++){const i=(y*before.width+x)*4;if([0,1,2].some(c=>a[i+c]!==b[i+c]))bodyChanges++;}
     metrics.push({theme,strongBorderPixels:strong,maxChannelDelta:max,bodyChanges,dpr:scale});check(strong>=24&&max>=35&&bodyChanges===0,theme+' native border is visibly contrasted and its interior pixels stay unchanged',metrics.at(-1));
+    const boundary=$('workspace-frame');
+    check(boundary&&boundary.getBoundingClientRect().width===win.innerWidth&&boundary.getBoundingClientRect().height===win.innerHeight,theme+' outer boundary fills the registered sidebar viewport');
+    for(const side of ['top','right','bottom','left']){
+     edge.setEnabled(false);await stableGeometry(theme+' outer '+side);
+     // Keep native input within the border's 36px contact radius, beyond the
+     // native scrollbar/resizer's hit zone at the iframe's extreme perimeter.
+     const before=await capture(win,'native-'+theme+'-outer-'+side+'-before'),vertical=side==='left'||side==='right',x=side==='left'?4:side==='right'?win.innerWidth-4:win.innerWidth/2,y=side==='top'?4:side==='bottom'?win.innerHeight-4:win.innerHeight/2;
+     edge.setEnabled(true);await pointer(x,y);
+     const fr=win.frameElement.getBoundingClientRect(),hostHit=win.frameElement.ownerDocument.elementFromPoint(fr.left+x,fr.top+y);diagnostics={...inspect(win),outer:{side,x,y,pointer:edge.pointer,active:edge.model.active?.id,target:edge.overlay.dataset.target,edge:edge.head.dataset.edge,lastClear:edge.lastClear,hit:doc.elementFromPoint(x,y)?.outerHTML?.slice(0,300),hostHit:hostHit?.outerHTML?.slice(0,300),events:events.slice(-3)}};
+     check(edge.model.active===boundary&&edge.head.dataset.edge===side,theme+' outer '+side+' responds on the actual sidebar perimeter',diagnostics.outer);
+     const after=await capture(win,'native-'+theme+'-outer-'+side+'-after'),a=before.getContext('2d').getImageData(0,0,before.width,before.height).data,b=after.getContext('2d').getImageData(0,0,after.width,after.height).data,lineX=side==='left'?0:side==='right'?win.innerWidth:x,lineY=side==='top'?0:side==='bottom'?win.innerHeight:y;let painted=0,inside=0;
+     const changed=(x,y)=>{const i=(y*after.width+x)*4;return [0,1,2].some(k=>Math.abs(a[i+k]-b[i+k])>5);};
+     for(let py=Math.max(0,Math.floor((lineY-(vertical?18:2))*scale));py<Math.min(after.height,Math.ceil((lineY+(vertical?19:3))*scale));py++)for(let px=Math.max(0,Math.floor((lineX-(vertical?2:18))*scale));px<Math.min(after.width,Math.ceil((lineX+(vertical?3:19))*scale));px++)if(changed(px,py))painted++;
+     for(let py=Math.floor((lineY+(side==='top'?12:side==='bottom'?-16:-4))*scale);py<Math.floor((lineY+(side==='top'?16:side==='bottom'?-12:4))*scale);py++)for(let px=Math.floor((lineX+(side==='left'?12:side==='right'?-16:-4))*scale);px<Math.floor((lineX+(side==='left'?16:side==='right'?-12:4))*scale);px++)if(px>=0&&py>=0&&px<after.width&&py<after.height&&changed(px,py))inside++;
+     metrics.push({theme,boundary:side,painted,inside,dpr:scale});check(painted>=8*scale&&inside===0,theme+' outer '+side+' paints only its thin border',metrics.at(-1));edge.clear();
+    }
     // The screenshot writes and pixel analysis above have no fixed duration.
     // Establish a fresh trusted contact before timing an actual departure.
     let measured=false;

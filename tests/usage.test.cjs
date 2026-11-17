@@ -13,7 +13,7 @@ test('compact usage puts money first, preserves unknown charges and keeps tokens
  const unknown=usage.begin({provider:'deepseek',model:'not-priced'});unknown.observe({usage:ds});await unknown.finish('complete');assert.match(usage.compact('deepseek'),/＋待计价/);assert.match(usage.compactDetail('deepseek'),/1 次未计价/);
  const chat=usage.begin({provider:'chatgpt',model:'gpt-6.1-sol'});chat.observe({usage:{input_tokens:1000,output_tokens:100,input_tokens_details:{cached_tokens:200,cache_write_tokens:300}}});await chat.finish('complete');
  assert.match(usage.compact('chatgpt'),/^等效 US\$<0\.01/);assert.match(usage.compactDetail('chatgpt'),/非套餐扣款/);
- assert.match(usage.compact('chatgpt-web'),/费用暂不可读取/);assert(!usage.compact('chatgpt-web').includes('Token'));assert.match(usage.compactDetail('chatgpt-web'),/未提供不等于免费/);
+  assert.equal(usage.compact('chatgpt-web'),usage.compact(''));assert.equal(usage.compactDetail('chatgpt-web'),usage.compactDetail(''));
  usage.broken=true;usage.error='统计文件未加载';assert.match(usage.compact('deepseek'),/未加载/);assert(!usage.compact('deepseek').includes('¥0'));
 });
 test('money indicator never makes unpriced calls free, combines currencies without conversion and excludes past days',async()=>{

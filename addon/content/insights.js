@@ -66,6 +66,9 @@ var PCInsights = class {
       if (message.role === 'boundary') question = null;
       if (message.role === 'user') question = message;
       if (message.role === 'assistant' && message.status === 'complete' && question?.status === 'complete') {
+        if (message.provider === 'chatgpt-web' && !(message.webVerified === true && question.webVerified === true &&
+          typeof message.webRequestID === 'string' && message.webRequestID.length > 0 && message.webRequestID === question.webRequestID &&
+          typeof message.webConversation === 'string' && message.webConversation.length <= 1024 && /^\/(?:[A-Za-z0-9_-]+\/?)*$/.test(message.webConversation))) continue;
         pending.push(this.enqueue(key, { question: question.text, answer: message.text, id: String(message.at), source: message.provider || 'chatgpt', context: question.context }, { manual }));
       }
     }
@@ -82,11 +85,6 @@ var PCInsights = class {
     this.update(paper.key, '正在检查尚未总结的已完成问答…');
     try {
       await this.collectNative(paper.key, { manual: true });
-      if (this.api.settings.chatProvider === 'chatgpt-web' && this.api.web.views.get(win)?.opened) {
-        const value = await this.api.web.query(win, 'conversation', {});
-        if (value.streaming) throw new Error('请等待网页回答完成，再更新聊天重点。');
-        for (const turn of value.turns) await this.enqueue(paper.key, { ...turn, source: 'chatgpt-web:' + value.conversation }, { manual: true });
-      }
       this.update(paper.key, '聊天重点已检查并保存；已总结的问答不会重复调用模型。');
     } catch (e) { this.update(paper.key, '聊天重点更新未完成：' + PCore.safeError(e.message), true); throw e; }
   }
@@ -187,26 +185,10 @@ var PCInsights = class {
     } catch (e) { this.updateReview(key, '重点再整理更新未完成：' + PCore.safeError(e.message), true); throw e; }
   }
   watchWeb(win, paper) {
-    const active = paper && this.enabled(paper.key) && this.api.settings.chatProvider === 'chatgpt-web' && this.api.web.views.get(win)?.opened;
-    const old = this.watches.get(win);
-    if (!active || old?.key !== paper.key) { if (old) win.clearInterval(old.timer); this.watches.delete(win); }
-    if (!active || this.watches.has(win)) return;
-    const watch = { key: paper.key, snapshot: '', busy: false };
-    watch.timer = win.setInterval(async () => {
-      if (watch.busy || !this.enabled(paper.key) || !this.api.web.views.get(win)?.opened) return;
-      watch.busy = true;
-      try {
-        const value = await this.api.web.query(win, 'conversation', {});
-        if (value.streaming) return;
-        const snapshot = JSON.stringify(value.turns);
-        if (snapshot !== watch.snapshot) { watch.snapshot = snapshot; return; } // Require a stable completed page.
-        if (watch.doneSnapshot === snapshot) return;
-        watch.doneSnapshot = snapshot; // Failed generations require an explicit retry or a new turn.
-        for (const turn of value.turns) await this.enqueue(paper.key, { ...turn, source: 'chatgpt-web:' + value.conversation });
-      } catch (e) { this.update(paper.key, '等待可读取的网页对话：' + PCore.safeError(e.message), true); }
-      finally { watch.busy = false; }
-    }, 3000);
-    this.watches.set(win, watch);
+    // Bridged web answers enter this paper's local session only after request
+    // correlation and completion. Reuse collectNative/enqueue for them; never
+    // scrape every turn from whichever website chat happens to be open.
+    this.closeWeb(win);
   }
   closeWeb(win) { const old = this.watches.get(win); if (old) win.clearInterval(old.timer); this.watches.delete(win); }
   destroy() {

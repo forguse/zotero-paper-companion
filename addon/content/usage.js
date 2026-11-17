@@ -114,7 +114,6 @@ var PCUsage = class {
     return symbol+low+(low!==high?'–'+high:'');
   }
   compact(provider) {
-    if (provider === 'chatgpt-web') return '网页费用暂不可读取 ›';
     if (!['deepseek', 'chatgpt'].includes(provider)) return '费用与额度 ›';
     if (this.broken) return '费用记录未加载 ›';
     const s = this.summary({ period: 'today', provider });
@@ -126,7 +125,6 @@ var PCUsage = class {
     return label + s.costs.map(money).join(' / ') + (s.unpriced ? '＋待计价' : provider === 'deepseek' ? ' 估' : '') + ' ›';
   }
   compactDetail(provider) {
-    if (provider === 'chatgpt-web') return '网页模式无法读取官方费用和 Token；未提供不等于免费。点击查看明细与套餐用量入口。';
     if (!['deepseek', 'chatgpt'].includes(provider)) return '查看本机费用估算、Token 明细、DeepSeek 余额与 ChatGPT 套餐用量入口。';
     if (this.broken) return this.error;
     const s = this.summary({ period: 'today', provider });

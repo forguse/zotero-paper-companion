@@ -42,7 +42,7 @@ var PCReadingScope = (function (Core) {
   }
   function describe(input = {}) {
     const { key = 'general', provider = '', model = '', context = null, session = null, evidence = null, preread = null } = input;
-    const phase = ['planned', 'prepared', 'draft'].includes(input.phase) ? input.phase : 'planned', planned = phase === 'planned', webDraft = provider === 'chatgpt-web';
+    const phase = ['planned', 'prepared', 'draft'].includes(input.phase) ? input.phase : 'planned', planned = phase === 'planned', webDraft = provider === 'chatgpt-web' && !input.webBridge;
     const selected = selection(input), manual = material(context), old = history({ provider, model, context, session }), coverage = coverageRows(evidence);
     const references = Array.isArray(evidence?.references) ? evidence.references : [], actualIDs = new Set([...coverage.map(row => row.paperID), ...references.map(row => row?.paperID)].filter(id => id !== null && id !== undefined));
     const actualComparisons = selected.comparisonIDs.filter(id => actualIDs.has(id));

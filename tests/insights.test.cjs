@@ -77,13 +77,15 @@ test('disabling during generation aborts the request and preserves the previous 
   const pending=insights.enqueue(paper.key,{question:'q',answer:'a',id:'abort',source:'deepseek'});await running;await insights.setEnabled(paper,false);await assert.rejects(pending,/cancelled/);
   assert.equal(files.get('/data/paper-companion/highlights/1_PAPER.md'),before);
 });
-test('opt-in web watcher waits for stable complete content and does not repeatedly generate or read while off',async()=>{
+test('web watcher compatibility clears old polling and never imports a website chat even while enabled',async()=>{
   const {api,insights,calls,paper}=setup();await insights.init();api.settings.chatProvider='chatgpt-web';let poll,reads=0,cleared=false;
   const win={setInterval(fn){poll=fn;return 1;},clearInterval(){cleared=true;}};
   api.web={views:new Map([[win,{opened:true}]]),query:async()=>{reads++;return {streaming:false,conversation:'/c/test',turns:[{id:'web-one',question:'Question',answer:'Answer'}]};}};
   insights.watchWeb(win,paper);assert.equal(poll,undefined);await insights.setEnabled(paper,true);insights.watchWeb(win,paper);
-  await poll();assert.equal(calls.length,0);await poll();assert.equal(calls.length,1);await poll();assert.equal(calls.length,1);
-  await insights.setEnabled(paper,false);insights.watchWeb(win,paper);assert(cleared);const before=reads;await poll();assert.equal(reads,before);
+  assert.equal(poll,undefined);assert.equal(reads,0);assert.equal(calls.length,0);
+  insights.watches.set(win,{timer:1,key:paper.key});insights.watchWeb(win,paper);
+  assert(cleared);assert.equal(insights.watches.size,0);
+  await insights.setEnabled(paper,false);insights.watchWeb(win,paper);assert.equal(reads,0);assert.equal(calls.length,0);
 });
 
 test('manual chat summary works with automation off, skips processed turns across restart, and never updates review',async()=>{
@@ -100,15 +102,23 @@ test('manual chat summary works with automation off, skips processed turns acros
   assert.equal(calls.length,1);assert.equal(resumed.manualJobs.size,0);
 });
 
-test('manual web summary reads completed loaded turns only on click without enabling a watcher or sending',async()=>{
+test('manual web summary accepts only verified completed local pairs and never reads the visible website chat',async()=>{
   const {api,insights,calls,paper}=setup();await insights.init();api.settings.chatProvider='chatgpt-web';
   const win={},actions=[];
   api.web={views:new Map([[win,{opened:true}]]),query:async(_,action)=>{actions.push(action);return {streaming:false,conversation:'/c/manual',turns:[{id:'web',question:'q',answer:'a'}]};}};
+  const pair=(id,options={})=>[
+    {role:'user',text:'Question '+id,status:'complete',webVerified:true,webRequestID:id},
+    {role:'assistant',text:'Answer '+id,status:'complete',at:id,provider:'chatgpt-web',webVerified:true,webRequestID:id,webConversation:'/c/local',...options}
+  ];
+  api.session=async()=>({messages:[...pair('owned'),...pair('unverified',{webVerified:false}),...pair('mismatch',{webRequestID:'different'}),...pair('external',{webConversation:'https://chatgpt.com/c/foreign'}),...pair('pending',{status:'pending'}),...pair('cancelled',{status:'cancelled'})]});
   insights.watchWeb(win,paper);assert.equal(insights.watches.size,0);assert.equal(actions.length,0);
   await insights.manualUpdate(paper,win);await insights.manualUpdate(paper,win);
-  assert.deepEqual(actions,['conversation','conversation']);assert.equal(calls.length,1);assert(!insights.enabled(paper.key));
-  api.web.query=async()=>({streaming:true,turns:[]});await assert.rejects(insights.manualUpdate(paper,win),/等待网页回答完成/);
-  assert.equal(calls.length,1);
+  assert.deepEqual(actions,[]);assert.equal(calls.length,1);assert(!insights.enabled(paper.key));
+  const sent=calls[0].body.messages[1].content;assert(sent.includes('Question owned')&&sent.includes('Answer owned'));
+  for(const label of ['unverified','mismatch','external','pending','cancelled'])assert(!sent.includes(label));
+  await insights.setEnabled(paper,true);
+  await insights.enqueue(paper.key,{id:'owned',source:'chatgpt-web',question:'Question owned',answer:'Answer owned'});
+  assert.equal(calls.length,1,'automatic completion and later local collection share the same deduplication identity');
 });
 
 test('review requires a first document and uses only its concise summary, coalescing clicks and skipping unchanged input',async()=>{

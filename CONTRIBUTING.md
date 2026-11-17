@@ -44,7 +44,7 @@ Windows 也可运行 `BUILD.cmd`。构建会检查版本一致性和运行文件
 - 保持插件 ID、每篇论文的数据键与文件格式兼容；需要迁移时给出可恢复路径。
 - 原生右侧栏、划词浮窗、笔记直接编辑及自动保存必须保留，不增加段落编辑模式。
 - 打开 Zotero、侧栏或切换主题不发起模型连接；每次操作固定明确的模型与账号，不静默换提供方或模型。
-- 普通 ChatGPT 网页模式只填写草稿和附加材料，由用户点击网站发送。授权模式的套餐信息不能视为普通 Chat 可用额度。
+- 问答仅提供 DeepSeek API 和 ChatGPT 登录。ChatGPT 登录使用 Work/Codex 额度。
 - 不覆盖外部修改的个人资料而不保留备份；失败或取消应保留已有内容，并支持明确的重试。
 - 动效应尊重减少动态效果及高对比度，不能遮住菜单、选区和输入。
 
@@ -64,7 +64,7 @@ python scripts/smoke_zotero.py .native-tests/my-reading-check --reading
 | 问答状态、布局与阅读位置 | `--iteration`、`--chat-layout`、`--chat-interactions` |
 | 笔记、公式、重点 | `--notes`、`--formula`、`--insights` |
 | 单词本与独立窗口 | `--vocabulary`、`--vocabulary-window` |
-| 设置、存储、网页及费用 | `--workspace`、`--storage`、`--web`、`--usage` |
+| 设置、存储及费用 | `--workspace`、`--storage`、`--usage` |
 | 全页面、缩放、四主题及追光 | `--uiux`、`--polish`、`--four-themes`、`--native-appearance`、`--edge-light` |
 | 安装持久化与完整重启 | `--install-restart` |
 | 阅读范围、摘记回执、分组保存与操作指南 | `--experience` |
@@ -74,7 +74,7 @@ python scripts/smoke_zotero.py .native-tests/my-reading-check --reading
 
 `--uninstall-cleanup` 只可用于新建的专用测试目录。它会实际删除该隔离配置中生成的合成插件文件，移除测试插件；第二次启动同一配置先检查没有重建，再通过 AddonManager 重装并确认账号、Key、词库和笔记处于新配置状态。核对 `uninstall-result.json` 与 `restart-result.json`；两次启动之间不要再次运行准备脚本，否则会提前重装插件。原始合成 PDF、文献和未知测试文件必须保持不变。
 
-模型、余额和网页检查使用模拟响应及本地网页替身；通过结果不代表真实账号在线服务验证。UI 截图必须来自实际构建和合成资料，注明环境与限制。`scripts/capture_showcase.py --layout` 可辅助捕获界面；输出保存在忽略的 `.native-tests/` 内。光效模块规则见[边框光效说明](docs/edge-light.md)。
+模型和余额检查使用模拟响应；通过结果不代表真实账号在线服务验证。UI 截图必须来自实际构建和合成资料，注明环境与限制。`scripts/capture_showcase.py --layout` 可辅助捕获界面；输出保存在忽略的 `.native-tests/` 内。光效模块规则见[边框光效说明](docs/edge-light.md)。
 
 ## 提交与发布
 

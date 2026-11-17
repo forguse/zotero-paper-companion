@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Paper Companion · 论文伴读",
-  "version": "1.0.0",
+  "version": "1.1.10",
   "description": "在 Zotero 中连续阅读问答、划词翻译、记录 Markdown 笔记、整理重点和复习生词。",
   "author": "Paper Companion contributors",
   "icons": {

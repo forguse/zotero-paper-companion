@@ -15,7 +15,7 @@ async function startup({ id, version, rootURI }) {
   companionScope = { Zotero, Services, Cc, Ci, Cu: Components.utils, ChromeUtils, IOUtils, PathUtils,
     URL, URLSearchParams, TextEncoder, TextDecoder, crypto, btoa, atob, AbortController, XMLHttpRequest,
     rootURI, uiRootURI: 'chrome://' + uiPackage + '/content/', pluginID: id, pluginVersion: version };
-  for (const file of ["math.js", "core.js", "persistence.js", "sessions.js", "ui.js", "edge-light.js", "appearance.js", "usage-store.js", "usage.js", "auth.js", "model-gateway.js", "reading-scope.js", "chat-service.js", "note-insertions.js", "uninstall-service.js", "sidebar.js", "webview.js", "paper-files.js", "insights.js", "formula.js", "reading.js", "preread.js", "vocabulary.js", "native.js"]) {
+  for (const file of ["math.js", "core.js", "persistence.js", "sessions.js", "ui.js", "edge-light.js", "appearance.js", "usage-store.js", "usage.js", "auth.js", "model-gateway.js", "reading-scope.js", "chat-service.js", "note-insertions.js", "uninstall-service.js", "sidebar.js", "paper-files.js", "insights.js", "formula.js", "reading.js", "preread.js", "vocabulary.js", "native.js"]) {
     Services.scriptloader.loadSubScript(rootURI + "content/" + file, companionScope);
   }
   await companionScope.PaperCompanion.init();

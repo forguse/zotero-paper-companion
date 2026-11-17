@@ -46,7 +46,7 @@ test('a changed PDF invalidates brief reuse; failed refresh preserves the previo
  api.gateway.generate=async()=>{throw Error('provider unavailable');};await assert.rejects(read.run(paper),/provider unavailable/);assert.equal(files.get(paths.prereadData),original);
 });
 test('preread refuses unavailable providers, unsupported effort, folder moves, and overlong model output without substitution',async()=>{
- const {read,api,paper,calls}=setup();api.settings.chatProvider='chatgpt-web';assert.throws(()=>read.run(paper),/预读草稿/);assert.equal(calls.length,0);
+ const {read,api,paper,calls}=setup();api.settings.chatProvider='chatgpt-web';assert.throws(()=>read.run(paper),/请选择|需要选择/);assert.equal(calls.length,0);
  api.settings.chatProvider='chatgpt';api.settings.model='gpt-6.1-sol';api.settings.chatGPTEffort='none';assert.throws(()=>read.run(paper),/不支持/);
  api.settings.chatProvider='deepseek';api.files.changing.add(paper.key);await assert.rejects(read.run(paper),/文件夹/);api.files.changing.clear();api.gateway.generate=async()=> 'x'.repeat(16001);await assert.rejects(read.run(paper),/过长/);
 });

@@ -4,6 +4,10 @@ Usage: python scripts/smoke_zotero.py /tmp/pc-smoke
 Then start Zotero with -no-remote -profile /tmp/pc-smoke/profile.
 """
 import json, pathlib, sys, zipfile, subprocess
+
+if '--web' in sys.argv[2:]:
+    raise SystemExit('The webpage Chat provider is disabled. Use the 1.1.9 source revision for its native smoke test.')
+
 from reportlab.pdfgen import canvas
 
 root=pathlib.Path(__file__).resolve().parents[1]
@@ -27,7 +31,6 @@ harness_name = 'insights-native-harness.js' if '--insights' in sys.argv[2:] else
 if '--storage' in sys.argv[2:]: harness_name = 'storage-native-harness.js'
 if '--formula' in sys.argv[2:]: harness_name = 'formula-native-harness.js'
 if '--reading' in sys.argv[2:]: harness_name = 'reading-native-harness.js'
-if '--web' in sys.argv[2:]: harness_name = 'web-native-harness.js'
 if '--usage' in sys.argv[2:]: harness_name = 'usage-native-harness.js'
 if '--workspace' in sys.argv[2:]: harness_name = 'workspace-native-harness.js'
 if '--uiux' in sys.argv[2:]: harness_name = 'uiux-native-harness.js'
@@ -57,17 +60,17 @@ harness=(root/'tests'/harness_name).read_text(encoding='utf-8')
 harness=harness.replace('__EXPECTED_VERSION__',version)
 harness=harness.replace('__EXPECTED_CONTROLS__',(root/'tests/ui-controls.json').read_text(encoding='utf-8'))
 for marker, file in {'__OUTPUT__': target/'result.json', '__PDF__': pdf, '__OTHER_PDF__':other_pdf, '__PACKAGE__': root/'INSTALL-LATEST.xpi',
-    '__SCREENSHOT__': target/'panel.png', '__WEB_FIXTURE__': target/'web-fixture.html',
-    '__WEB_SCREENSHOT__': target/'web-panel.png', '__NOTES_SCREENSHOT__': target/'notes-panel.png',
+    '__SCREENSHOT__': target/'panel.png', '__NOTES_SCREENSHOT__': target/'notes-panel.png',
     '__POPUP_SCREENSHOT__': target/'selection-popup.png', '__REAL_POPUP_SCREENSHOT__': target/'real-selection-popup.png'}.items():
     harness = harness.replace("'" + marker + "'", json.dumps(str(file)))
 with zipfile.ZipFile(profile/'extensions/zz-paper-companion-test@local.xpi','w',zipfile.ZIP_DEFLATED) as z:
     z.writestr('manifest.json',json.dumps({'manifest_version':2,'name':'Paper Companion disposable smoke test','version':'1.0.0','applications':{'zotero':{'id':'zz-paper-companion-test@local','update_url':'https://paper-companion.invalid/updates.json','strict_min_version':'7.0','strict_max_version':'10.0.*'}}}))
     z.writestr('bootstrap.js',harness)
-    z.write(root/'tests/WebTestChild.sys.mjs','content/WebTestChild.sys.mjs')
     if any(flag in sys.argv[2:] for flag in ('--uiux','--polish','--iteration','--edge-light','--vocabulary-window','--four-themes','--chat-interactions','--experience','--uninstall-cleanup')):
         z.writestr('content/viewport.xhtml','<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Disposable UI audit</title><style>html,body{margin:0;padding:0}iframe{display:block;border:0}</style></head><body></body></html>')
-(target/'web-fixture.html').write_bytes((root/'tests/web-fixture.html').read_bytes())
 prefs={'extensions.zotero.dataDir':str(data),'extensions.zotero.useDataDir':True,'extensions.zotero.firstRun2':False,'extensions.zotero.firstRun':False,'extensions.autoDisableScopes':0,'extensions.enabledScopes':15,'extensions.zotero.automaticScraperUpdates':False,'extensions.zotero.sync.autoSync':False,'extensions.update.enabled':False,'app.update.auto':False,'browser.shell.checkDefaultBrowser':False,'toolkit.telemetry.enabled':False}
+# Disposable plugin tests must not launch an unrelated Word template installer
+# against the user's real Office STARTUP directory.
+prefs['extensions.zoteroWinWordIntegration.skipInstallation'] = True
 (profile/'user.js').write_text('\n'.join('user_pref('+json.dumps(k)+', '+json.dumps(v)+');' for k,v in prefs.items()))
 print(profile)

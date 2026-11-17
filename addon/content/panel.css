@@ -386,6 +386,24 @@ body.web-expanded #chat-history-open{display:none}
 
 .engine-guide{margin:8px 0 10px;padding:8px 10px;border-left:2px solid var(--green);font-size:12px;line-height:1.75;color:var(--ink);overflow-wrap:anywhere}
 .web-pane{min-height:100px}
+/* Ordinary web Chat uses the same reading and input layout as API engines.
+   Keep its browser rendered in place while concealed: display:none would
+   collapse website editors and interrupt attachment/stream observations. */
+#tab-chat{position:relative}
+.web-connection-bar{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;flex:none;margin:0 var(--gutter) 7px;min-width:0;color:var(--muted);font-size:12px}
+.web-connection-bar>span{flex:1 1 150px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.web-connection-bar>button{flex:none;min-height:30px;padding:3px 8px;font-size:12px}
+.web-connection-bar:is([data-state=failed],[data-state=uncertain],[data-state=staged])>span{flex-basis:100%;white-space:normal;color:var(--ink)}
+#web-status-detail{flex:1 0 100%;min-width:0;margin:0;font-size:12px}
+#web-status-detail>summary{width:fit-content;max-width:100%;padding:2px 0;color:var(--green);cursor:pointer}
+#web-status-message{margin:4px 0 2px;max-height:7em;overflow:auto;overscroll-behavior:contain;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+body.web-expanded .web-hint.needs-attention{display:block;max-height:6em;padding:6px 9px;margin:0 5px 5px;border:1px solid var(--border);border-radius:6px;background:var(--soft);color:var(--ink);font-size:12px;overflow-wrap:anywhere}
+.chat-tools>#web-model{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-chat>.web-pane{position:absolute;inset:0;flex:none;min-height:0;background:var(--bg);z-index:50;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+#tab-chat>.web-pane[data-inspect=false]{clip-path:inset(100%);opacity:0;pointer-events:none;z-index:-1}
+#tab-chat>.web-pane[data-inspect=true]{clip-path:none;opacity:1;pointer-events:auto}
+.web-tools>#web-return{color:var(--green);font-weight:600}
+@media(max-width:320px){.web-connection-bar{gap:3px}.web-connection-bar>button{padding-inline:5px}#web-bridge-status{font-size:11px}}
 .settings-group-heading{margin:22px 2px 10px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
 #settings-provider{border-top:2px solid var(--green)}
 .settings-card .engine-guide{font-size:12px;color:var(--ink)}
@@ -460,19 +478,24 @@ body.web-expanded.web-focus #tab-chat>.composer{display:none}
 .composer-tools{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0}
 #tab-chat .composer-heading #composer-toggle{grid-column:2;align-self:start;width:88px;min-width:88px;min-height:32px;margin:0;padding:4px 5px;font-size:12px;white-space:nowrap}
 #tab-chat .composer-heading #composer-toggle>.pc-glyph{flex:none;width:16px;height:16px}
-#tab-chat>.composer>#composer-fields{grid-area:fields;border-radius:8px}
-#tab-chat>.composer>.send-row{grid-area:footer;min-width:0}
+#tab-chat>.composer>#composer-fields{grid-area:fields;border-radius:8px;scrollbar-width:thin;scrollbar-gutter:auto}
+#tab-chat>.composer>.send-row{grid-area:footer;display:grid;grid-template-columns:auto minmax(0,1fr) 68px;align-items:center;gap:6px;min-width:0;margin-top:8px}
+#tab-chat>.composer>.send-row>:is(#send,#stop){grid-column:3;width:68px;min-width:68px;min-height:34px;margin:0;padding:4px 7px;gap:4px;justify-content:center;font-size:13px}
+#tab-chat>.composer>.send-row>#stop{border-color:var(--green);color:var(--green);background:var(--paper);font-weight:600}
 #tab-chat>.composer>#usage-plan-shortcut{grid-area:plan}
 #tab-chat>.composer.collapsed{grid-template-areas:"footer heading" "fields fields" "plan plan";grid-template-rows:auto minmax(0,auto) auto;align-items:start;gap:0;padding:5px 10px}
 #tab-chat>.composer.collapsed>.composer-heading{grid-template-columns:minmax(0,1fr) 88px;width:88px;gap:0;margin:0}
 #tab-chat>.composer.collapsed .composer-tools{display:none}
 #tab-chat>.composer.collapsed>.send-row{width:auto;min-width:0;margin:0;align-self:center}
+#tab-chat>.composer.collapsed>.send-row{display:flex}
 #tab-chat>.composer>#quick-menu{position:absolute;inset:auto 0 calc(100% + 7px);z-index:35;max-height:min(320px,45vh);margin:0;animation-duration:110ms}
 .tab-pane.active{animation:none}
 #tab-chat button:active,.tabs button:active{transform:none;transition-duration:0ms}
 /* Container-only borders provide a precise mask without decorating buttons. */
 .paper-row{border-width:1px;border-style:solid}
 html[data-pc-theme] .tabs{border:1px solid transparent}
-#tab-chat .composer textarea{border:1px solid transparent}
+#tab-chat .composer #prompt{display:block;margin:0;padding:8px 14px 8px 10px;border:1px solid var(--border);border-radius:8px;outline:0;outline-offset:0;box-shadow:none;scrollbar-width:thin;scrollbar-gutter:stable;overflow-x:hidden}
+#tab-chat .composer #prompt:focus{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+@media(forced-colors:active){#tab-chat .composer #prompt:focus-visible{outline:2px solid Highlight;outline-offset:-3px}}
 @media(max-width:300px){:root{--gutter:8px}}
 @media(max-height:520px){#tab-chat>.chat-log{margin-bottom:6px}}

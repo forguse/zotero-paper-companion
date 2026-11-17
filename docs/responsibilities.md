@@ -44,6 +44,12 @@ Responses/DeepSeek 的纯构造和流解析继续在 `core.js`。网关统一协
 
 配置、账号和阅读论文列表在异步操作前固定。初始和会话加载完成后都检查关闭、历史切换及预读冲突；新建/恢复不能越过忙碌保护。不完整回答不会进入后续有效上下文；保存失败仍保留可见回答及仅重试保存入口。自动笔记或重点整理失败作为独立通知，不修改已经完成的问答状态。
 
+## 旧网页会话兼容
+
+1.1.10 停用网页问答。原引擎设置恢复为未选择，用户可以在两种现有引擎中重新选择。
+
+旧版会话里的 `webVerified`、`webRequestID` 和 `webConversation` 字段用于确认历史回合是否完整。重点整理继续读取符合条件的本地问答，沿用同一来源和消息时间去重。网页桥接的历史实现与回归记录见[网页模式归档](web-mode-review.md)。
+
 ## 设置控制器
 
 `PCSettingsPanel` 接收 `document` 和明确的偏好/视图端口：`readSettings`、`saveSettings`、`keyPresent`、`readPrompt`、`defaultPrompt`、`readVocabularyState`，以及保存后刷新和通知回调。`keyPresent` 只返回布尔值；控制器不接收账号列表、令牌或完整 API。
@@ -56,7 +62,7 @@ Responses/DeepSeek 的纯构造和流解析继续在 `core.js`。网关统一协
 
 ### 阅读范围、摘记与操作指南
 
-`reading-scope.js` 只根据已知状态生成计划或实际依据；不读取 PDF、不连接模型。问答服务与网页草稿准备共用它的材料选择规则；`reading-scope-ui.js` 只展示缓存状态和显式本篇选项。
+`reading-scope.js` 只根据已知状态生成计划或实际依据；不读取 PDF、不连接模型。问答服务复用其材料选择规则。`reading-scope-ui.js` 只展示缓存状态和显式本篇选项。
 
 `note-insertions.js` 保存有界的本次运行内撤销记录；只允许精确确认的插入区间撤销，保留后续追加。`note-receipt-ui.js` 通过本机写入、刷新、定位端口展示回执，不操作文件路径。直接编辑器按源 Markdown 区间定位，只滚动自身。
 

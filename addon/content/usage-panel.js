@@ -39,7 +39,7 @@ var PCUsagePanel = class {
       name.textContent = cost.equivalent ? 'ChatGPT · API 等效估算' : 'DeepSeek · API 估算'; value.textContent = ledger.moneySummary(cost).replace('$', 'US$'); card.title='精确估算：'+ledger.money(cost).replace('$','US$');card.append(name, value); this.el('usage-costs').append(card);
     }
     if (!stats.costs.length || stats.pending || unavailable) { const p = this.document.createElement('p'); p.textContent = unavailable ? '费用统计未加载，历史费用和调用数量未知。' : stats.pending ? '正在读取费用统计，尚未完成不代表没有消耗。' : stats.calls ? '费用未知：尚无可计价的调用。' : '此范围暂无模型调用。'; this.el('usage-costs').append(p); }
-    const missing = this.document.createElement('p'); missing.className = 'fine-print'; missing.textContent = unavailable ? '原统计文件已保留；未能读取不代表零消耗。' : stats.pending ? '历史明细按页加载，当前统计正在更新。' : `${stats.unknown} 次未返回 Token · ${stats.unpriced} 次未计价。${this.api.settings.chatProvider === 'chatgpt-web' ? '当前网页模式的会话未计入以上 Token。' : ''}`; this.el('usage-costs').append(missing);
+    const missing = this.document.createElement('p'); missing.className = 'fine-print'; missing.textContent = unavailable ? '原统计文件已保留；未能读取不代表零消耗。' : stats.pending ? '历史明细按页加载，当前统计正在更新。' : `${stats.unknown} 次未返回 Token · ${stats.unpriced} 次未计价。`; this.el('usage-costs').append(missing);
     if (ledger.error) this.status(ledger.error);
     const state = this.api.publicState(), account = state.accounts.find(a => a.clientID === state.activeAccount);
     this.el('usage-plan-account').textContent = account ? '插件授权账号：' + account.email + '。请核对官方页的账号和工作区。' : '在官方页登录要查询的账号；请核对账号和工作区。';

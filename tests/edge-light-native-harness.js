@@ -76,7 +76,9 @@ function startup({ rootURI }) {
       check(controller.model.active===navigation&&!theme.targets.some(t=>t.node===navButton),'a button event near the navigation perimeter lights only its enclosing strip',debug());
       $('messages').scrollTop=0;await pause();
       const bubble=doc.querySelector('.message.user .message-body'),reading=doc.querySelector('.chat-log'),entry=$('prompt');
-      const containers=[['paper',doc.querySelector('.paper-row')],['navigation',navigation],['reading',reading],['question',bubble],['input',entry],['composer',doc.querySelector('.composer')]];
+      const outerFrame=$('workspace-frame'),frameRect=outerFrame.getBoundingClientRect();
+      check(frameRect.left===0&&frameRect.top===0&&frameRect.width===win.innerWidth&&frameRect.height===win.innerHeight&&win.getComputedStyle(outerFrame).pointerEvents==='none','outer frame follows the entire viewport without intercepting input',frameRect.toJSON());
+      const containers=[['viewport',outerFrame],['paper',doc.querySelector('.paper-row')],['navigation',navigation],['reading',reading],['question',bubble],['input',entry],['composer',doc.querySelector('.composer')]];
       const diff=(before,after,x,y)=>{const i=(y*after.width+x)*4;return [0,1,2].some(k=>Math.abs(after.data[i+k]-before.data[i+k])>5);};
       for(const [name,node]of containers){
         for(const side of ['top','right','bottom','left']){

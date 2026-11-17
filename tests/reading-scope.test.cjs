@@ -3,6 +3,14 @@ const Scope = require('../addon/content/reading-scope.js');
 const base = { key: '1_A', paperID: 1, provider: 'deepseek', model: 'deepseek-flash', smartReading: true, session: { messages: [], materials: {} } };
 const manual = { id: 'selected', mode: 'selection', label: '第 2 页选段', text: 'PRIVATE_SOURCE_TEXT' };
 const evidence = { text: 'PRIVATE_EVIDENCE_TEXT', references: [{ key: '1_A', paperID: 1, page: 2, text: 'PRIVATE_ORIGINAL_PASSAGE' }], coverage: [{ paperID: 1, title: 'Active study', kind: 'lexical', brief: true, snippets: 2, characters: 300 }] };
+
+test('automatic webpage sends describe the submitted scope while manual handoff stays a draft',()=>{
+  const input={...base,provider:'chatgpt-web',context:manual,phase:'prepared'};
+  const bridge=Scope.describe({...input,webBridge:true}),draft=Scope.describe(input);
+  assert.equal(bridge.webDraft,false);assert(!JSON.stringify(bridge.warnings).includes('仍需在网页确认'));
+  assert.equal(draft.webDraft,true);assert(JSON.stringify(draft.warnings).includes('仍需在网页确认'));
+  assert(!JSON.stringify(bridge).includes('PRIVATE_SOURCE_TEXT'));
+});
 test('scope planning is pure and preserves manual precedence unless the user explicitly combines this paper', () => {
   assert.deepEqual(Scope.selection(base), { shouldPrepare: true, includePrimary: true, comparisonIDs: [] });
   assert.deepEqual(Scope.selection({ ...base, context: manual }), { shouldPrepare: false, includePrimary: false, comparisonIDs: [] });

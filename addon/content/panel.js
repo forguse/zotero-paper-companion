@@ -11,13 +11,9 @@
   for(const button of document.querySelectorAll('button'))if(button.childElementCount===0)PCUI.action(button);
   const control=(id,text,icon,options={})=>{const node=$(id),label=node.querySelector(':scope > .pc-control-label'),glyph=node.querySelector(':scope > .pc-glyph');if(label?.textContent===text&&glyph?.dataset.pcGlyph===icon&&node.classList.contains('pc-disclosure')===!!options.disclosure&&node.classList.contains('pc-icon-only')===!!options.only)return node;return PCUI.label(node,text,icon,options);};
   for(const id of ['close-preview','formula-close','reading-close','usage-close','chat-history-close','note-find-close'])if($(id))control(id,$(id).getAttribute('aria-label')||'关闭','close',{only:true});
-  control('formula-open','记公式','formula');control('web-external','外部打开','external');control('web-focus','放大网页','expand',{only:true});control('screenshot-options-toggle','截图选项','chevron',{disclosure:true,only:true});
+  control('formula-open','记公式','formula');control('screenshot-options-toggle','截图选项','chevron',{disclosure:true,only:true});
   control('note-find-toggle','查找','chevron',{disclosure:true});control('range-toggle','范围','chevron',{disclosure:true});
   control('toggle-note-source','Markdown 源码','chevron',{disclosure:true});
-  const webMore=document.createElement('div'),webMoreToggle=document.createElement('button'),webMoreMenu=document.createElement('div');webMore.className='web-more';webMoreToggle.id='web-more-toggle';webMoreToggle.type='button';webMoreToggle.setAttribute('aria-expanded','false');webMoreToggle.setAttribute('aria-controls','web-more-menu');webMoreMenu.id='web-more-menu';webMoreMenu.className='web-more-menu';webMoreMenu.hidden=true;PCUI.label(webMoreToggle,'更多网页操作','more',{only:true});
-  webMoreMenu.append($('web-external'),$('web-focus'),$('web-close'));webMore.append(webMoreToggle,webMoreMenu);document.querySelector('.web-tools').append(webMore);
-  webMoreToggle.addEventListener('click',()=>{const open=webMoreMenu.hidden;closePopovers('web-more-menu');webMoreMenu.hidden=!open;webMoreToggle.setAttribute('aria-expanded',String(open));if(open)webMoreMenu.querySelector('button').focus();});
-  webMoreMenu.addEventListener('click',event=>{if(event.target.closest('button')){closePopovers();webMoreToggle.focus();}});
   const headerGlyph=document.querySelector('.header-chevron');headerGlyph.replaceChildren(PCUI.icon(document,'chevron'));
 
   const appearancePorts={get settings(){return api.settings;},subscribe:fn=>api.subscribe(fn),emit:(...values)=>api.emit(...values),saveAppearance:patch=>settingsPanel.immediate('appearance',()=>api.saveAppearance(patch),Object.keys(patch).sort().join(','))};
@@ -77,7 +73,7 @@
   const uninstallReviewUI = new PCUninstallUI({document,button:$('uninstall-review-open'),review:api.uninstallReview,reveal:path=>api.revealUninstallPath(path),copy:text=>api.copy(text),notify:notice});
   const tab = name => { const next=$('tab-'+name),changed=!next.classList.contains('active');notice("");closePopovers();readingLayout(()=>{document.querySelector('.tabs').dataset.active=name;document.querySelectorAll('.tabs button').forEach(b=>{const active=b.dataset.tab===name;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;});document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p===next));workspaceLayout();});if(changed){pageMotion?.cancel();pageMotion=motionAllowed()?next.animate([{opacity:.65},{opacity:1}],{duration:100,easing:'ease-out'}):null;}updateGuide();if(name==='notes')noteReceiptUI?.showLatest($('note-latest-receipt')); };
   const on = (id, fn) => $(id).addEventListener("click", () => run(fn));
-  for(const [group,selector]of Object.entries({connection:'#settings-provider',api:'#settings-deepseek',translation:'#settings-translation',questions:'#settings-questions',prompts:'#settings-prompts',vocabulary:'#settings-vocabulary',general:'.settings-save',appearance:'#settings-appearance',formula:'#settings-formula',chat:'#chat-options','translation-options':'#translation-settings','summary-options':'.highlights-config','notes-options':'#note-insert-options,#translation-save-options',materials:'#material-options',screenshot:'#screenshot-options','web-options':'.web-tools',layout:'#settings-storage'})){
+  for(const [group,selector]of Object.entries({connection:'#settings-provider',api:'#settings-deepseek',translation:'#settings-translation',questions:'#settings-questions',prompts:'#settings-prompts',vocabulary:'#settings-vocabulary',general:'.settings-save',appearance:'#settings-appearance',formula:'#settings-formula',chat:'#chat-options','translation-options':'#translation-settings','summary-options':'.highlights-config','notes-options':'#note-insert-options,#translation-save-options',materials:'#material-options',screenshot:'#screenshot-options',layout:'#settings-storage'})){
     for(const host of document.querySelectorAll(selector)){host.dataset.settingsSaveGroup=group;const status=document.createElement('span');status.className='settings-save-state';status.setAttribute('role','status');status.setAttribute('aria-live','polite');host.append(status);}
   }
   const settingsPanel = new PCSettingsPanel({
@@ -89,7 +85,7 @@
     notice, error: error => notice(PCore.safeError(error.message), true),
     afterSaved: () => renderMessages(), vocabularyChanged: () => refreshVocabulary(),
     providerChanged: () => settingsEngineGuide(),
-    instantGroups:['appearance','formula','chat','translation-options','summary-options','notes-options','materials','screenshot','web-options','layout'],
+    instantGroups:['appearance','formula','chat','translation-options','summary-options','notes-options','materials','screenshot','layout'],
     saveState:(group,detail)=>{for(const host of document.querySelectorAll('[data-settings-save-group="'+group+'"]')){host.dataset.saveStatus=detail.status;const label=host.querySelector('.settings-save-state');if(label&&label.textContent!==detail.text)label.textContent=detail.text;}}
   });
   function saveInstant(group, values) { return settingsPanel.immediate(group,()=>api.saveSettings(values),Object.keys(values).sort().join(',')); }
@@ -149,14 +145,13 @@
   on('settings-current-folder', () => locate('settings-folder', 'h3'));
   on('settings-configure-engine', () => {
     const provider = $('default-provider').value;
-    if (provider === 'chatgpt-web') { if(api.settings.chatProvider!==provider){notice('请先保存问答方式，再打开网页登录。');return;} tab('chat'); $('web-start').focus(); }
-    else locate(provider === 'chatgpt' ? 'settings-chatgpt' : 'settings-deepseek', 'h3');
+    locate(provider === 'chatgpt' ? 'settings-chatgpt' : 'settings-deepseek', 'h3');
   });
   function settingsEngineGuide() {
     const provider=$('default-provider').value;
     $('settings-engine-hint').textContent=PCore.engineGuide(provider);
     $('settings-configure-engine').disabled=!provider;
-    $('settings-configure-engine').textContent=({deepseek:'设置 DeepSeek Key',chatgpt:'配置授权账号','chatgpt-web':'前往网页登录'})[provider]||'前往账号配置';
+    $('settings-configure-engine').textContent=({deepseek:'设置 DeepSeek Key',chatgpt:'配置授权账号'})[provider]||'前往账号配置';
   }
   async function openModelSettings(feature) {
     const target=PCore.featureModel(api.settings,feature).target;
@@ -164,7 +159,7 @@
     if(target==='translation'){tab('translate');$('translation-settings').open=true;locate('translation-engine');}
     else if(target==='formula'){tab('settings');locate('settings-formula','h3');}
     else if(target==='summary'){tab('highlights');document.querySelector('.highlights-config').open=true;locate('highlights-engine');}
-    else {tab('chat');if(api.settings.chatProvider==='chatgpt-web'){$('web-start').focus({preventScroll:true});return;}if(readingFocus)focusOptionsOpen=true;else if(layoutValue('chatOptionsCollapsed'))await saveLayoutPreference('chatOptionsCollapsed',false);workspaceLayout();$('model').focus({preventScroll:true});}
+    else {tab('chat');if(readingFocus)focusOptionsOpen=true;else if(layoutValue('chatOptionsCollapsed'))await saveLayoutPreference('chatOptionsCollapsed',false);workspaceLayout();$(api.settings.chatProvider ? 'model' : 'provider').focus({preventScroll:true});}
   }
   for(const [id,feature]of [['translation-model-link','translation'],['summary-model-link','summary'],['organization-model-link','summary'],['review-model-link','review'],['preread-model-link','preread']])on(id,()=>openModelSettings(feature));
   function modelShortcuts() {
@@ -181,15 +176,15 @@
   function workspaceLayout() {
     return readingLayout(()=>{
     const headerCollapsed=!!layoutValue('headerCollapsed');document.querySelector('.workspace-header').classList.toggle('collapsed',headerCollapsed);$('header-toggle').setAttribute('aria-expanded',String(!headerCollapsed));
-    const webSend=api.settings.chatProvider==='chatgpt-web';control('send',webSend?(window.innerWidth<=320?'传入草稿':'传入网页草稿'):'发送',webSend?'popout':'send');$('send').setAttribute('aria-label',webSend?'传入网页草稿，之后由你在网站发送':'发送问题');
+    control('send','发送','send');$('send').setAttribute('aria-label','发送问题');
     const focused = readingFocus && $('tab-chat').classList.contains('active');
     document.body.classList.toggle('chat-focus', focused);
     $('chat-focus').setAttribute('aria-pressed', String(focused)); control('chat-focus',focused?'退出专注':'专注阅读',focused?'minimize':'expand');$('chat-focus').setAttribute('aria-label',focused?'退出专注阅读':'专注阅读');
     $('chat-focus').title = focused ? '恢复标题与导航；Esc 也可退出' : '收起标题、导航和输入区，专注阅读回复';
     const optionsOpen = readingFocus ? focusOptionsOpen : !layoutValue('chatOptionsCollapsed');
     fold($('chat-options'),optionsOpen); $('chat-options-toggle').setAttribute('aria-expanded', String(optionsOpen));
-    const provider = { deepseek:'DeepSeek', chatgpt:'ChatGPT', 'chatgpt-web':'ChatGPT 网页' }[api.settings.chatProvider];
-    const model = api.settings.chatProvider === 'chatgpt-web' ? '' : $('model').selectedOptions[0]?.textContent || '';
+    const provider = { deepseek:'DeepSeek', chatgpt:'ChatGPT' }[api.settings.chatProvider];
+    const model = $('model').selectedOptions[0]?.textContent || '';
     const optionsLabel=optionsOpen?'收起模型与工具':'模型：'+(provider?provider+(model?' · '+model:''):'点击选择');
     control('chat-options-toggle',optionsLabel,'chevron',{disclosure:true});$('chat-options-toggle').title=optionsLabel;$('chat-options-toggle').setAttribute('aria-label',optionsLabel);
     let shortOptions=$('chat-options-toggle').querySelector('.chat-options-short');if(!shortOptions){shortOptions=document.createElement('span');shortOptions.className='chat-options-short';shortOptions.setAttribute('aria-hidden','true');$('chat-options-toggle').insertBefore(shortOptions,$('chat-options-toggle').querySelector('.pc-glyph'));}shortOptions.textContent=optionsOpen?'收起工具':model||provider||'选择模型';
@@ -232,7 +227,6 @@
     document.body.dataset.engine = provider;
     $('chat-engine-hint').textContent = PCore.engineGuide(provider);
     $("provider").value = provider;
-    $("web-pane").hidden = provider !== "chatgpt-web"; $("messages").hidden = provider === "chatgpt-web"; document.body.classList.toggle("web-expanded", provider === "chatgpt-web");
     $("status").textContent = s.state === "online" ? (s.inferenceVerified ? "可用" : "已授权") : s.state === "connecting" ? "连接中" : "未连接";
     $("status").className = "status " + s.state;
     $("connect").hidden = provider !== "chatgpt";
@@ -240,19 +234,19 @@
     $("connect").textContent = s.state === "online" ? "断开" : s.state === "connecting" ? "取消" : "连接 ChatGPT";
     if (provider === "deepseek") options($("model"), [["deepseek-flash", "Flash"],["deepseek-v4-pro", "Pro"]], s.settings.chatDeepseekModel);
     else if (provider === "chatgpt") options($("model"), s.models.length ? s.models.map(m => [m.id, m.name]) : [["", "连接后选择模型"]], s.settings.model);
-    else options($("model"), [["", provider === "chatgpt-web" ? "网页中选模型" : "先选择引擎"]]);
+    else options($("model"), [["", "先选择引擎"]]);
     $('chat-effort').hidden = provider !== 'chatgpt';
     const efforts = PCore.reasoningEfforts(s.settings.model, api.models.find(m => m.id === s.settings.model)?.reasoningEfforts), labels = { default:'默认强度', none:'不思考', minimal:'最少', low:'低', medium:'中', high:'高', xhigh:'更高', max:'最高' };
     options($('chat-effort'), [...efforts.map(v => [v,labels[v]]), ...(!efforts.includes(s.settings.chatGPTEffort) ? [[s.settings.chatGPTEffort,'强度不受支持 · 请重选']] : [])], s.settings.chatGPTEffort);
     $('chat-effort').title = efforts.length === 1 ? '模型目录未声明推理强度；仅使用模型默认。' : '问答推理强度；较高强度可能增加耗时与用量。';
-    $("model").disabled = !provider || provider === "chatgpt-web"; $("new-chat").hidden = provider === "chatgpt-web";
+    $("model").disabled = !provider; $('new-chat').disabled=!!s.chatBusy||sending;
     options($("account"), s.accounts.length ? s.accounts.map(a => [a.clientID, a.email + " · " + a.clientID.slice(-6)]) : [["", "尚未登录"]], s.activeAccount);
     usageUI.refresh(); prereadControls(); workspaceLayout();
     document.querySelector('.conversation-hint').textContent = paper ? '本篇连续对话 · 保留当前会话上下文' : '连续对话 · 保留当前会话上下文';
-    control('send',provider==='chatgpt-web'?'传入网页草稿':'发送',provider==='chatgpt-web'?'popout':'send');
-    control('web-composer-toggle',s.settings.webCompactComposer?'展开输入':'收起输入','chevron',{disclosure:true}); $('web-composer-toggle').setAttribute('aria-expanded', String(!s.settings.webCompactComposer));
-    $('prompt').placeholder = provider === 'chatgpt-web' ? '在这里输入问题… Enter 传入网页草稿，Shift+Enter 换行' : '输入问题… Enter 发送，Shift+Enter 换行';
-    $("send").disabled = sending || s.chatBusy; $("stop").hidden = (!sending || provider === 'chatgpt-web') && !s.chatBusy && !extracting;
+    control('send','发送','send');
+    $('prompt').placeholder = '输入问题… Enter 发送，Shift+Enter 换行';
+    $("send").disabled = sending || s.chatBusy; $("stop").hidden = !sending && !s.chatBusy && !extracting;
+    $("send").hidden = !$("stop").hidden;
     $("translation-provider").textContent = s.settings.translationProvider === "chatgpt" ? "ChatGPT" : s.settings.deepseekModel === "deepseek-v4-pro" ? "DeepSeek Pro" : "DeepSeek Flash";
     $("selection-mode").value = s.settings.selectionTranslation; $("excerpt-style").value = s.settings.excerptStyle;
     $('translation-note-style').value = s.settings.translationExcerptStyle;
@@ -305,7 +299,6 @@
     $("screenshot-ask").disabled = !paper || extracting || sending;
     if (changingFolder) { $("highlights-now").disabled = true; $("review-now").disabled = true; $("highlights-enabled").disabled = true; $("highlights-toggle").disabled = true; }
     $("translation-config-hint").textContent = t === 'deepseek' ? '使用你的 DeepSeek API Key；默认 Flash / 快速。未配置或请求失败时不改用其他引擎。' : '需要手动连接 ChatGPT 授权并单独选择翻译模型；使用 Work/Codex 用量。强度支持范围由模型决定，不支持时会报错。';
-    api.insights.watchWeb(window, paper);
   }
   async function refreshHighlights() {
     const current = key(), rev = ++highlightsRevision, value = await api.insights.read(paper), review = await api.insights.readReview(paper);
@@ -384,7 +377,7 @@
     if(activeChatSession&&(activeChatSession!==session||activeMaterialID!==materialID&&(!context||context.id===activeMaterialID))){attach(session.materials?.[materialID]||null);comparisonIDs=new Set();}
     activeChatSession=session;activeMaterialID=materialID;
     let recorded=null;for(let i=session.messages.length-1;i>=0;i--){if(session.messages[i].readingScope){recorded=session.messages[i].readingScope;break;}}
-    if(api.settings.chatProvider!=='chatgpt-web'){
+    {
       if(recorded&&readingScopeUI?.actual.get(current)!==recorded)readingScopeUI?.accept({key:current,scope:recorded});
       else if(!recorded&&readingScopeUI?.actual.has(current))readingScopeUI.forget(current);
     }
@@ -393,7 +386,7 @@
       const box = document.createElement("div"); box.className = "empty-chat";
       const h = document.createElement("h1"); h.textContent = "边读，边问，边留下思考。"; box.append(h);
       const p = document.createElement("p"); p.textContent = api.settings.chatProvider ? paper && api.settings.smartReading ? '直接提问，会按问题准备当前论文的原文。也可手动附加选文、页面或 PDF。' : "可以直接输入问题；需要结合原文时，再附加选文、页面或截图。划词浮窗也可翻译或摘录。" : "先选择默认引擎，之后随时可以切换。"; box.append(p);
-      if (!api.settings.chatProvider) for (const [value, label] of [["deepseek","DeepSeek API"],["chatgpt-web","ChatGPT 网页 · 普通 Chat ↗"],["chatgpt","ChatGPT 授权 · Work/Codex 额度"]]) { const b = document.createElement("button"); b.className = "engine-choice"; b.textContent = label;PCUI.action(b,label); b.addEventListener("click", () => run(() => chooseProvider(value))); box.append(b); }
+      if (!api.settings.chatProvider) for (const [value, label] of [["deepseek","DeepSeek API"],["chatgpt","ChatGPT 登录 · Work/Codex 额度"]]) { const b = document.createElement("button"); b.className = "engine-choice"; b.textContent = label;PCUI.action(b,label); b.addEventListener("click", () => run(() => chooseProvider(value))); box.append(b); }
       chatView.empty(current,box); updateScope();updateGuide();return;
     }
     chatView.update(current,session.messages,m => {
@@ -402,6 +395,7 @@
       const body = document.createElement("div"); body.className = "message-body markdown";
       if (m.role === "assistant") body.innerHTML = PCore.markdown(m.text || (m.status === "pending" ? "正在思考…" : "回答未完成")); else body.textContent = m.text;
       if (m.role === 'assistant') {
+        PCMath.render(body);
         const html = PCore.markdown(m.text || ''), links = [...html.matchAll(/<a href="([^"]+)"/g)];
         [...body.querySelectorAll('a')].forEach((a, i) => {
           const href = links[i]?.[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
@@ -423,7 +417,7 @@
         article.append(details);
       }
       if (m.context) { const c = document.createElement("div"); c.className = "message-context"; c.textContent = m.context; article.append(c); }
-      if (m.error || m.status === "cancelled") { const e = document.createElement("div"); e.className = "message-error"; e.textContent = m.error || "已停止，未完成内容不会作为后续上下文。"; article.append(e); }
+      if (m.error || m.status === "cancelled") { const e = document.createElement("div"); e.className = "message-error"; e.textContent = m.error || (m.provider==='chatgpt-web'?'已停止同步；网页已生成的内容仍可能保留在该会话中。':'已停止，未完成内容不会作为后续上下文。'); article.append(e); }
       if (m.role === "assistant" && m.text) {
         const actions = document.createElement("div"); actions.className = "message-actions";
         const receiptHost=document.createElement('div');receiptHost.className='message-note-receipt';
@@ -463,38 +457,23 @@
       const value = { ...(context || {}), id: 'screenshot-' + Date.now(), key: target.key, title: target.title, mode: 'screenshot', label: (context?.label ? context.label + ' · ' : '') + `截图 · 第 ${source.page} 页`, text: context?.text || '', images, pageNumbers: [...(context?.pageNumbers || (context?.image ? [context.page] : [])), source.page] };
       attach(value, true);
       if (api.settings.screenshotCopy) { try { api.copyImage(source.image); } catch (e) { notice('截图已附加，复制图片失败：' + PCore.safeError(e.message), true); return; } }
-      if (api.settings.chatProvider === 'chatgpt-web' && api.web.views.get(window)?.opened) {
-        try { await api.web.attach(window, { ...value, images: [source.image], file: null, pageNumbers: [source.page] }); }
-        catch (e) { notice('截图已保留在插件；网页附加失败，可点击「附加到网页」重试：' + PCore.safeError(e.message), true); return; }
-      }
       notice(api.settings.screenshotCopy ? '截图已附加并复制为图片；输入问题后发送。' : '截图已附加；输入问题后发送。'); $('prompt').focus();
     } finally { extracting = false; state(); }
   });
   async function send() {
     const prompt = $("prompt").value.trim(); if (!prompt || sending) return;
-    if (api.settings.chatProvider === "chatgpt-web") {
-      const current = key(), target = paper, requestScope=scopeInput(), selection=PCReadingScope.selection(requestScope); let attached = context, evidence=null; sending = true; state();
-      const controller = new AbortController(); api.readingDraftController = controller;
-      try {
-        if (target && selection.shouldPrepare) {
-          extracting = true; state();
-          const session = await api.session(current);
-          const webRead = await api.web.hasPreread(window, target);
-          evidence = await api.reading.prepare(target.id, prompt, { ids: selection.comparisonIDs, signal: controller.signal, first: !attached && !session.messages.length && !webRead, includePrimary: selection.includePrimary, remoteRead: webRead });
-          attached = attached ? { ...attached, text: evidence.text + '\n\n手动材料：\n' + attached.text, label: evidence.label + ' · ' + attached.label } : evidence;
-        }
-        await api.web.fill(window, prompt, attached);
-        readingScopeUI.accept({key:current,scope:PCReadingScope.describe({...requestScope,evidence,phase:'draft'})});
-        if (key() === current) {
-          if ($("prompt").value.trim() === prompt) { $("prompt").value = ''; resizePrompt(); }
-          $("prompt").focus();
-          notice((attached?.file || attached?.image || attached?.images?.length) ? "草稿已传入；再附加图片或 PDF，检查后点网页发送。" : "已传入网页草稿。可展开输入查看，再点网页发送。");
-        }
-      } finally { sending = false; extracting = false; if (api.readingDraftController === controller) api.readingDraftController = null; state(); }
-      return;
-    }
-    const current = key(), submitted=promptDraft(); sending = true; state(); notice(""); $("prompt").value = ""; resizePrompt();promptDrafts.remember(current,promptDraft());
-    try { await api.ask(current, prompt, submitted.context, () => { if (key() === current) chatView.schedule(); }, { ids: submitted.ids,includePrimary:submitted.includePrimary }); if(key()===current)notice(''); }
+    const current = key(), submitted=promptDraft();
+    const clearSubmittedDraft=()=>{
+      if(key()===current){
+        if($('prompt').value===submitted.text){$('prompt').value='';resizePrompt();promptDrafts.remember(current,promptDraft());}
+      }else{
+        const draft=promptDrafts.get(current);
+        if(draft?.text===submitted.text)promptDrafts.remember(current,{...draft,text:'',start:0,end:0,scroll:0});
+      }
+    };
+    sending = true; state(); notice("");
+    clearSubmittedDraft();
+    try { await api.ask(current, prompt, submitted.context, () => { if (key() === current) chatView.schedule(); }, { ids: submitted.ids, includePrimary: submitted.includePrimary }); if (key() === current) notice(''); }
     catch (e) {
       if(key()===current)promptDrafts.remember(current,promptDraft());
       if((e.code!=='CHAT_SAVE_FAILED'||!e.answerComplete)&&promptDrafts.recover(current,submitted)&&key()===current){restorePromptDraft(current);revealComposer();}
@@ -543,13 +522,11 @@
     const busy = !!paper && api.preread.jobs.has(key());
     $('preread-plan').disabled=!paper||busy||api.chatBusy||planningRead;
     const labels = {unprepared:'未准备',extracted:'已提取',ready:'已预读',stale:'需更新',unchecked:'待核对',unavailable:'待检查'};
-    const web=api.settings.chatProvider==='chatgpt-web';
-    $('chat-preread-open').disabled=!paper;$('chat-preread-open').textContent=web?'网页预读':busy?'预读中':planningRead?'准备中':'预读 · '+(labels[readingSnapshot?.state]||'待核对');
-    $('chat-preread-open').title = web?'将整篇文字传入网页草稿，由你在网站发送；与本机提要独立。':readingSnapshot?.text || '查看本机阅读状态，准备范围并预读整篇文字';
-    $('preread-state').textContent = web?'网页预读需要你在网站发送并完成回复；网站对话上下文与本机提要独立。':readingSnapshot?.text || (paper ? '正在核对本机阅读资料，不调用模型…' : '打开 PDF 后查看阅读状态。');
-    $('preread-start').disabled = $('preread-rebuild').disabled = !paper || busy || api.chatBusy || planningRead || (api.settings.chatProvider!=='chatgpt-web'&&(!prereadPlan||prereadPlan.key!==key()));
-    $('preread-start').textContent = api.settings.chatProvider === 'chatgpt-web' ? '传入预读草稿' : '预读 / 复用提要';
-    $('preread-stop').hidden = !busy&&!planningRead;$('preread-stop').textContent=planningRead?'停止准备':'停止预读'; $('preread-open').disabled = !paper;
+    $('chat-preread-open').disabled=!paper;$('chat-preread-open').textContent=busy?'预读中':planningRead?'准备中':'预读 · '+(labels[readingSnapshot?.state]||'待核对');
+    $('chat-preread-open').title = readingSnapshot?.text || '查看本机阅读状态，准备范围并预读整篇文字';
+    $('preread-state').textContent = readingSnapshot?.text || (paper ? '正在核对本机阅读资料，不调用模型…' : '打开 PDF 后查看阅读状态。');
+    $('preread-start').disabled = $('preread-rebuild').disabled = !paper || busy || api.chatBusy || planningRead || (!prereadPlan||prereadPlan.key!==key());
+    $('preread-stop').hidden = !busy&&!planningRead;$('preread-stop').textContent=planningRead?'停止准备':'停止预读'; $('preread-open').disabled = !paper;$('preread-open').textContent='打开预读文档';
     const status = paper && api.preread.status.get(key()); if (status) { $('preread-status').textContent = status.text; $('preread-status').classList.toggle('feature-error', !!status.error); }
   }
   async function refreshReadingState() {
@@ -573,7 +550,6 @@
   }
   async function preread(rebuild = false) {
     if (!paper) throw new Error('请先打开 PDF。'); const target = paper;
-    if (api.settings.chatProvider === 'chatgpt-web') { await api.web.preread(window, target); $('preread-status').textContent = '全文预读草稿已传入，请在网页发送。发送并完成回复后，同一网页对话会继续保留原文上下文。'; return; }
     try { await api.preread.run(target, { rebuild,expected:prereadPlan });if(prereadPlan?.key===target.key)prereadPlan.reusable=true; if (key() === target.key && !api.settings.smartReading) await saveInstant('chat',{ smartReading: true }); }
     finally { await refreshReadingState(); }
   }
@@ -582,7 +558,6 @@
     if(!paper||planningRead)return;const target=paper,current=key(),controller=new AbortController();planController=controller;planningRead=true;prereadControls();
     $('preread-plan-info').textContent='正在本机准备文字，不调用模型…';
     try{
-      if(api.settings.chatProvider==='chatgpt-web'){$('preread-plan-info').textContent='网页预读只传入草稿，需自行在网页发送；插件无法估算网站的额度消耗。';return;}
       const plan=await api.preread.plan(target,{signal:controller.signal});if(key()!==current)return;if(JSON.stringify(plan.config)!==JSON.stringify(prereadConfigSnapshot()))throw new Error('模型已改变，请重新准备预读范围与费用。');prereadPlan=plan;
       const cost=plan.cost,amount=cost?(cost.equivalent?'API 等效 ':'')+(cost.currency==='USD'?'US$':'¥')+cost.low.toPrecision(3)+'–'+cost.high.toPrecision(3):'当前模型没有本机单价，费用未知';
       $('preread-plan-info').textContent=plan.config.model+' · '+plan.pages+'页 · '+plan.characters.toLocaleString()+'字符 · '+plan.batches+'段，含整合约'+plan.requests+'次请求。'+(plan.emptyPages?plan.emptyPages+'页未提取到文字。':'')+'重新预读参考估算：'+amount+'（非费用上限；推理、分词与输出会影响实际消耗）。'+(plan.reusable?'已有有效提要，点击复用不调用模型。':'')+'仅预读可提取文字，不含图表图片。';
@@ -737,11 +712,7 @@
     if (action.action === "ask") {
       tab("chat");
       revealComposer();
-      if (api.settings.chatProvider === "chatgpt-web" && api.web.views.get(window)?.opened) {
-        try { await api.web.fill(window, action.text, null); $("prompt").focus(); notice("选文已追加到当前网页对话草稿，尚未发送。"); return; }
-        catch (e) { notice("网页暂时无法写入，选文已保留在下方问题框。" + PCore.safeError(e.message), true); }
-      } else notice("选文已追加到当前问题框，尚未发送。");
-      document.body.classList.remove("web-focus"); $("web-focus").setAttribute("aria-pressed", "false");
+      notice("选文已追加到当前问题框，尚未发送。");
       const input = $("prompt"); input.value = (input.value ? input.value + "\n\n" : "") + action.text;
       resizePrompt(); input.focus(); input.setSelectionRange(input.value.length, input.value.length); input.scrollTop = input.scrollHeight;
     }
@@ -752,14 +723,7 @@
   on("reauthorize", async () => { api.disconnect(); await api.connect({ reauthorize: true }); });
   on("logout", async () => notice(await api.logout()));
   $("account").addEventListener("change", () => run(() => api.chooseAccount($("account").value)));
-  on("web-start", () => { api.web.open(window, $("web-host")); $("web-hint").textContent = "请在网页完成登录并使用 Chat 模式；下方「传入网页草稿」不会自动发送。"; state(); });
-  on("web-focus", () => { const focused = document.body.classList.toggle("web-focus"); $("web-focus").setAttribute("aria-pressed", String(focused));control('web-focus',focused?'恢复网页大小':'放大网页',focused?'minimize':'expand',{only:true}); });
-  on("web-reload", () => api.web.reload(window));
-  on('web-composer-toggle', async () => { await saveInstant('web-options',{ webCompactComposer: !api.settings.webCompactComposer }); if (api.web.views.get(window)?.opened) await api.web.syncPresentation(window); });
-  on("web-close", () => { document.body.classList.remove("web-focus"); $("web-focus").setAttribute("aria-pressed", "false");control("web-focus","放大网页","expand",{only:true}); api.web.close(window); $("web-host").textContent = "网页已关闭。有效登录通常会保留在 Zotero 中；点击「打开网页」恢复。"; });
-  on("web-external", () => { api.webChat($("prompt").value.trim(), context); notice("已复制文字并打开外部浏览器。图片或 PDF 可从材料预览导出后附加。"); });
-  on("web-attach", async () => { const result = await api.web.attach(window, context); notice(`已把 ${result.count} 个文件交给网页附件控件，请等网页显示上传完成后再发送。`); });
-  on("usage", () => api.usage.openPlanUsage()); on("web-open", () => api.openURL("https://chatgpt.com/"));
+  on("usage", () => api.usage.openPlanUsage());
   on("follow", async () => { api.followCurrentReader(); await refreshPaper(api.readerID); });
   $("paper").addEventListener("change", () => run(() => refreshPaper($("paper").value)));
   $("provider").addEventListener("change", () => run(() => chooseProvider($("provider").value)));
@@ -786,14 +750,14 @@
   on("read-range", () => extract("range", { from: Number($("range-from").value), to: Number($("range-to").value) }));
   on("clear-context", async () => { attach(null); await api.clearContext(key()); notice("已移除本轮材料；历史问答与材料记录仍保留。"); });
   on("preview-context", () => { if (!context) return; $("context-title").textContent = context.label; $("context-text").textContent = context.text; $("context-images").replaceChildren(); for (const url of context.images || (context.image ? [context.image] : [])) { const img = document.createElement("img"); img.src = url; img.alt = "PDF 页面"; $("context-images").append(img); } $("context-dialog").showModal(); });
-  on("export-material", async () => { if (await api.exportMaterials(context)) notice("材料已导出，可在 ChatGPT 网页附加。"); });
+  on("export-material", async () => { if (await api.exportMaterials(context)) notice("材料已导出。"); });
   on("close-preview", () => $("context-dialog").close());
   on("send", send); $("prompt").addEventListener("keydown", e => {
     if (e.key !== "Enter" || e.shiftKey || e.isComposing || e.keyCode === 229) return;
     e.preventDefault(); if (!e.repeat) run(send);
   });
   on("stop", () => api.stop()); on("translation-stop", () => api.translationController?.abort());
-  on("new-chat", async () => { await api.newSession(key()); attach(null); await renderMessages(); });
+  on('new-chat', async () => { if (api.chatBusy) throw new Error('请先停止当前回答。'); await api.newSession(key()); attach(null); await renderMessages(); state(); });
   let historyKey = '', historyID = '', historyRevision = 0;
   on('chat-history-open', async () => {
     historyKey = key(); historyID = ''; const rev = ++historyRevision;
@@ -907,7 +871,7 @@
   on('paper-folder-default', () => changeFolder(true));
   function closePopovers(except = '') {
     $('note-manage').open=false;
-    for (const [content, toggle] of [['quick-menu','quick-toggle'],['screenshot-options','screenshot-options-toggle'],['web-more-menu','web-more-toggle']]) {
+    for (const [content, toggle] of [['quick-menu','quick-toggle'],['screenshot-options','screenshot-options-toggle']]) {
       if (content === except) continue;
       $(content).hidden = true; $(toggle).setAttribute('aria-expanded','false');
     }
@@ -916,12 +880,12 @@
   }
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return;
-    const active = !$('quick-menu').hidden ? 'quick-toggle' : !$('screenshot-options').hidden ? 'screenshot-options-toggle' : !$('web-more-menu').hidden ? 'web-more-toggle' : $('organization-menu').open ? 'organization-menu' : readingScopeUI?.disclosure.open?'reading-scope': '';
+    const active = !$('quick-menu').hidden ? 'quick-toggle' : !$('screenshot-options').hidden ? 'screenshot-options-toggle' : $('organization-menu').open ? 'organization-menu' : readingScopeUI?.disclosure.open?'reading-scope': '';
     if (!active) { if (readingFocus) { e.preventDefault(); setReadingFocus(false); $('chat-focus').focus(); } return; }
     e.preventDefault(); closePopovers(); (active==='reading-scope'?readingScopeUI.summary:active === 'organization-menu' ? $(active).querySelector('summary') : $(active)).focus({preventScroll:true});
   });
   document.addEventListener('click', e => {
-    const keep = e.target.closest?.('#quick-menu,#quick-toggle') ? 'quick-menu' : e.target.closest?.('#screenshot-options,#screenshot-options-toggle') ? 'screenshot-options' : e.target.closest?.('#web-more-menu,#web-more-toggle') ? 'web-more-menu' : e.target.closest?.('#organization-menu') ? 'organization-menu' : e.target.closest?.('.reading-scope')?'reading-scope': '';
+    const keep = e.target.closest?.('#quick-menu,#quick-toggle') ? 'quick-menu' : e.target.closest?.('#screenshot-options,#screenshot-options-toggle') ? 'screenshot-options' : e.target.closest?.('#organization-menu') ? 'organization-menu' : e.target.closest?.('.reading-scope')?'reading-scope': '';
     closePopovers(keep);
   });
   on("quick-toggle", () => { const hidden=!$('quick-menu').hidden;$('quick-menu').hidden=hidden;$('quick-toggle').setAttribute('aria-expanded',String(!hidden));if(hidden)return;const room=document.querySelector('.composer').getBoundingClientRect().top-$('tab-chat').getBoundingClientRect().top-8;$('quick-menu').style.maxHeight=Math.max(48,Math.min(320,room))+'px';$('quick-list').replaceChildren();for(const question of api.settings.quickQuestions){const b=document.createElement('button');b.textContent=question;b.addEventListener('click',()=>{$('prompt').value=question;$('quick-menu').hidden=true;$('quick-toggle').setAttribute('aria-expanded','false');resizePrompt();$('prompt').focus({preventScroll:true});});$('quick-list').append(b);} });
